@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Configuración de Redes</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 20px;
+    }
+    
+    .container { 
+      max-width: 1000px; 
+      margin: 0 auto; 
+    }
+    
+    h2 { 
+      color: #58a6ff;
+      margin-bottom: 30px;
+      font-size: 28px;
+      font-weight: 300;
+    }
+    
+    h3 {
+      color: #8b949e;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .config-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .config-row label {
+      color: #8b949e;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    
+    input, select { 
+      background: #161b22;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    input:focus, select:focus {
+      border-color: #58a6ff;
+    }
+    
+    input[type="text"], input[type="number"] {
+      width: 100%;
+    }
+    
+    button { 
+      background: #238636;
+      color: white;
+      border: none;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    
+    button:hover { 
+      background: #2ea043;
+    }
+    
+    .btn-add {
+      background: #238636;
+    }
+    
+    .btn-edit {
+      background: #1f6feb;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .btn-edit:hover {
+      background: #388bfd;
+    }
+    
+    .btn-submit {
+      background: #1f6feb;
+      padding: 12px 24px;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    
+    .btn-submit:hover {
+      background: #388bfd;
+    }
+    
+    .section { 
+      background: #0d1117;
+      border: 1px solid #30363d;
+      padding: 20px;
+      margin-bottom: 25px;
+      border-radius: 6px;
+    }
+    
+    .item-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      padding: 12px 16px;
+      margin-top: 8px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s;
+    }
+    
+    .item-card:hover {
+      border-color: #58a6ff;
+    }
+    
+    .item-card strong {
+      color: #c9d1d9;
+      font-size: 14px;
+    }
+    
+    .item-card small {
+      color: #8b949e;
+      font-size: 12px;
+    }
+    
+    .error {
+      color: #f85149;
+      background: #1c1e24;
+      border: 1px solid #f85149;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(1, 4, 9, 0.8);
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal-content {
+      background: #161b22;
+      border: 1px solid #30363d;
+      margin: 50px auto;
+      padding: 30px;
+      border-radius: 6px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    
+    .modal-content h3 {
+      color: #58a6ff;
+      font-size: 20px;
+      margin-bottom: 25px;
+      text-transform: none;
+      letter-spacing: normal;
+      font-weight: 500;
+    }
+    
+    .modal-content label {
+      color: #8b949e;
+      font-size: 13px;
+      display: block;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    
+    .modal-content label:first-of-type {
+      margin-top: 0;
+    }
+    
+    .close {
+      color: #8b949e;
+      float: right;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 20px;
+      transition: color 0.2s;
+    }
+    
+    .close:hover {
+      color: #c9d1d9;
+    }
+    
+    .interface-list {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      min-height: 50px;
+    }
+    
+    .interface-tag {
+      display: inline-block;
+      background: #1f6feb;
+      color: white;
+      padding: 6px 12px;
+      margin: 4px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .interface-tag:hover {
+      background: #388bfd;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+    
+    .btn-cancel {
+      background: #21262d;
+      border: 1px solid #30363d;
+    }
+    
+    .btn-cancel:hover {
+      background: #30363d;
+    }
+    
+    hr {
+      border: none;
+      border-top: 1px solid #30363d;
+      margin: 25px 0;
+    }
+    
+    .empty-state {
+      color: #8b949e;
+      font-size: 13px;
+      font-style: italic;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Configuración de Redes</h2>
+    
+    {% if error %}
+      <div class="error">
+        <strong>Error:</strong> {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" id="main-form" onsubmit="return prepareFormSubmit()">
+      
+      <!-- Configuración base -->
+      <div class="config-row">
+        <label>Primer octeto:</label>
+        <input name="first_octet" type="text" required value="10" placeholder="10" style="width: 100px;">
+      </div>
+
+      <!-- Sección de VLANs -->
+      <div class="section">
+        <h3>VLANs</h3>
+        <div id="vlans-list"></div>
+        <button type="button" class="btn-add" onclick="addVlan()">Agregar VLAN</button>
+      </div>
+
+      <!-- Sección de Routers -->
+      <div class="section">
+        <h3>Routers</h3>
+        <div id="routers-list"></div>
+        <button type="button" class="btn-add" onclick="addRouter()">Agregar Router</button>
+      </div>
+
+      <button type="submit" class="btn-submit">Generar Configuración</button>
+    </form>
+  </div>
+
+  <!-- Modal VLAN -->
+  <div id="vlan-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeVlanModal()">&times;</span>
+      <h3 id="vlan-modal-title">Editar VLAN</h3>
+      
+      <label>Nombre de VLAN</label>
+      <input id="vlan-name" type="text" placeholder="Ventas, Administracion">
+      
+      <label>Terminación</label>
+      <input id="vlan-term" type="text" placeholder="2, 3, 10">
+      
+      <label>Prefijo de máscara</label>
+      <input id="vlan-prefix" type="number" value="24" min="8" max="30" placeholder="24">
+      
+      <div class="modal-buttons">
+        <button type="button" onclick="saveVlan()">Guardar</button>
+        <button type="button" class="btn-cancel" onclick="closeVlanModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Router -->
+  <div id="router-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeRouterModal()">&times;</span>
+      <h3 id="router-modal-title">Editar Router</h3>
+      
+      <label>Nombre del Router</label>
+      <input id="router-name" type="text" placeholder="R1, Router-Principal">
+      
+      <hr>
+      
+      <h3>Interfaces Backbone</h3>
+      <div id="router-interfaces-list" class="interface-list"></div>
+      <button type="button" onclick="addInterfaceToRouter()">Agregar Interfaz</button>
+      
+      <hr>
+      
+      <h3>Interfaz para VLANs</h3>
+      <label>Tipo de interfaz</label>
+      <select id="router-vlan-type">
+        <option value="eth">Ethernet (eth)</option>
+        <option value="gi">GigabitEthernet (gi)</option>
+        <option value="fa">FastEthernet (fa)</option>
+      </select>
+      
+      <label>Número de interfaz</label>
+      <input id="router-vlan-number" type="text" value="0/2/0" placeholder="0/2/0">
+      
+      <hr>
+      
+      <h3>VLANs Asignadas</h3>
+      <div id="router-vlans-options"></div>
+      
+      <div class="modal-buttons">
+        <button type="button" onclick="saveRouter()">Guardar</button>
+        <button type="button" class="btn-cancel" onclick="closeRouterModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Interfaz -->
+  <div id="interface-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeInterfaceModal()">&times;</span>
+      <h3>Configurar Interfaz Backbone</h3>
+      
+      <label>Tipo de interfaz</label>
+      <select id="interface-type">
+        <option value="fa">FastEthernet (fa)</option>
+        <option value="gi">GigabitEthernet (gi)</option>
+        <option value="eth">Ethernet (eth)</option>
+      </select>
+      
+      <label>Número de interfaz</label>
+      <input id="interface-number" type="text" placeholder="0/0, 0/1">
+      
+      <label>Conecta a</label>
+      <select id="interface-target">
+        <option value="">Seleccionar Router</option>
+      </select>
+      
+      <div class="modal-buttons">
+        <button type="button" onclick="saveInterface()">Guardar</button>
+        <button type="button" class="btn-cancel" onclick="closeInterfaceModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let routerCounter = 0;
+    let vlanCounter = 0;
+    const vlans = [];
+    const routers = [];
+    let currentEditingRouter = null;
+
+    // === VLAN Functions ===
+    function addVlan() {
+      const vlanId = vlanCounter++;
+      vlans.push({
+        id: vlanId,
+        name: '',
+        termination: '',
+        prefix: 24
+      });
+      renderVlans();
+    }
+
+    function openVlanModal(vlanId) {
+      const vlan = vlans.find(v => v.id === vlanId);
+      if (!vlan) return;
+
+      document.getElementById('vlan-modal-title').textContent = vlan.name ? `Editar ${vlan.name}` : 'Nueva VLAN';
+      document.getElementById('vlan-name').value = vlan.name || '';
+      document.getElementById('vlan-term').value = vlan.termination || '';
+      document.getElementById('vlan-prefix').value = vlan.prefix || 24;
+      document.getElementById('vlan-modal').dataset.vlanId = vlanId;
+      document.getElementById('vlan-modal').style.display = 'block';
+    }
+
+    function saveVlan() {
+      const vlanId = parseInt(document.getElementById('vlan-modal').dataset.vlanId);
+      const vlan = vlans.find(v => v.id === vlanId);
+      
+      vlan.name = document.getElementById('vlan-name').value;
+      vlan.termination = document.getElementById('vlan-term').value;
+      vlan.prefix = parseInt(document.getElementById('vlan-prefix').value);
+      
+      closeVlanModal();
+      renderVlans();
+      updateAllRouterVlanOptions();
+    }
+
+    function closeVlanModal() {
+      document.getElementById('vlan-modal').style.display = 'none';
+    }
+
+    function renderVlans() {
+      const container = document.getElementById('vlans-list');
+      container.innerHTML = '';
+      
+      if (vlans.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay VLANs configuradas</div>';
+        return;
+      }
+      
+      vlans.forEach(vlan => {
+        const div = document.createElement('div');
+        div.className = 'item-card';
+        div.innerHTML = `
+          <div>
+            <strong>${vlan.name || 'VLAN sin nombre'}</strong>
+            ${vlan.name ? `<br><small>Terminación: ${vlan.termination}, Prefijo: /${vlan.prefix}</small>` : ''}
+          </div>
+          <button type="button" class="btn-edit" onclick="openVlanModal(${vlan.id})">Editar</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // === Router Functions ===
+    function addRouter() {
+      const routerId = routerCounter++;
+      routers.push({
+        id: routerId,
+        name: '',
+        interfaces: [],
+        vlan_interface: { type: 'eth', number: '0/2/0' },
+        assigned_vlans: []
+      });
+      renderRouters();
+    }
+
+    function openRouterModal(routerId) {
+      currentEditingRouter = routerId;
+      const router = routers.find(r => r.id === routerId);
+      if (!router) return;
+
+      document.getElementById('router-modal-title').textContent = router.name ? `Editar ${router.name}` : 'Nuevo Router';
+      document.getElementById('router-name').value = router.name || '';
+      document.getElementById('router-vlan-type').value = router.vlan_interface.type || 'eth';
+      document.getElementById('router-vlan-number').value = router.vlan_interface.number || '0/2/0';
+      
+      renderRouterInterfaces(routerId);
+      renderRouterVlanOptions(routerId);
+      
+      document.getElementById('router-modal').dataset.routerId = routerId;
+      document.getElementById('router-modal').style.display = 'block';
+    }
+
+    function saveRouter() {
+      const routerId = parseInt(document.getElementById('router-modal').dataset.routerId);
+      const router = routers.find(r => r.id === routerId);
+      
+      router.name = document.getElementById('router-name').value;
+      router.vlan_interface.type = document.getElementById('router-vlan-type').value;
+      router.vlan_interface.number = document.getElementById('router-vlan-number').value;
+      
+      router.assigned_vlans = [];
+      vlans.forEach(vlan => {
+        const checkbox = document.getElementById(`router-vlan-check-${vlan.id}`);
+        if (checkbox && checkbox.checked) {
+          router.assigned_vlans.push(vlan.id);
+        }
+      });
+      
+      closeRouterModal();
+      renderRouters();
+    }
+
+    function closeRouterModal() {
+      document.getElementById('router-modal').style.display = 'none';
+      currentEditingRouter = null;
+    }
+
+    function renderRouters() {
+      const container = document.getElementById('routers-list');
+      container.innerHTML = '';
+      
+      if (routers.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay routers configurados</div>';
+        return;
+      }
+      
+      routers.forEach(router => {
+        const div = document.createElement('div');
+        div.className = 'item-card';
+        
+        let info = `<strong>${router.name || 'Router sin nombre'}</strong>`;
+        if (router.name) {
+          info += `<br><small>Interfaces: ${router.interfaces.length}, VLANs: ${router.assigned_vlans.length}</small>`;
+        }
+        
+        div.innerHTML = `
+          <div>${info}</div>
+          <button type="button" class="btn-edit" onclick="openRouterModal(${router.id})">Configurar</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // === Interface Functions ===
+    function addInterfaceToRouter() {
+      if (currentEditingRouter === null) return;
+      
+      const router = routers.find(r => r.id === currentEditingRouter);
+      const interfaceId = router.interfaces.length;
+      
+      router.interfaces.push({
+        id: interfaceId,
+        type: 'fa',
+        number: '0/0',
+        target: ''
+      });
+      
+      renderRouterInterfaces(currentEditingRouter);
+      openInterfaceModal(interfaceId);
+    }
+
+    function openInterfaceModal(interfaceId) {
+      if (currentEditingRouter === null) return;
+      
+      const router = routers.find(r => r.id === currentEditingRouter);
+      const iface = router.interfaces[interfaceId];
+      if (!iface) return;
+
+      document.getElementById('interface-type').value = iface.type || 'fa';
+      document.getElementById('interface-number').value = iface.number || '0/0';
+      
+      const select = document.getElementById('interface-target');
+      select.innerHTML = '<option value="">Seleccionar Router</option>';
+      routers.forEach(r => {
+        if (r.id !== currentEditingRouter && r.name) {
+          const option = document.createElement('option');
+          option.value = `router_${r.id}`;
+          option.textContent = r.name;
+          if (iface.target === `router_${r.id}`) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        }
+      });
+      
+      document.getElementById('interface-modal').dataset.interfaceId = interfaceId;
+      document.getElementById('interface-modal').style.display = 'block';
+    }
+
+    function saveInterface() {
+      const interfaceId = parseInt(document.getElementById('interface-modal').dataset.interfaceId);
+      const router = routers.find(r => r.id === currentEditingRouter);
+      const iface = router.interfaces[interfaceId];
+      
+      iface.type = document.getElementById('interface-type').value;
+      iface.number = document.getElementById('interface-number').value;
+      iface.target = document.getElementById('interface-target').value;
+      
+      closeInterfaceModal();
+      renderRouterInterfaces(currentEditingRouter);
+    }
+
+    function closeInterfaceModal() {
+      document.getElementById('interface-modal').style.display = 'none';
+    }
+
+    function renderRouterInterfaces(routerId) {
+      const router = routers.find(r => r.id === routerId);
+      const container = document.getElementById('router-interfaces-list');
+      container.innerHTML = '';
+      
+      if (router.interfaces.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay interfaces configuradas</div>';
+        return;
+      }
+      
+      router.interfaces.forEach((iface, idx) => {
+        const targetRouter = routers.find(r => `router_${r.id}` === iface.target);
+        const targetName = targetRouter ? targetRouter.name : 'No asignado';
+        
+        const tag = document.createElement('div');
+        tag.className = 'interface-tag';
+        tag.innerHTML = `${iface.type}${iface.number} → ${targetName}`;
+        tag.onclick = () => openInterfaceModal(idx);
+        container.appendChild(tag);
+      });
+    }
+
+    function renderRouterVlanOptions(routerId) {
+      const router = routers.find(r => r.id === routerId);
+      const container = document.getElementById('router-vlans-options');
+      container.innerHTML = '';
+      
+      if (vlans.length === 0) {
+        container.innerHTML = '<div class="empty-state">Primero agrega VLANs</div>';
+        return;
+      }
+      
+      vlans.forEach(vlan => {
+        if (!vlan.name) return;
+        
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.marginBottom = '8px';
+        label.style.fontWeight = 'normal';
+        label.style.cursor = 'pointer';
+        
+        const checked = router.assigned_vlans.includes(vlan.id) ? 'checked' : '';
+        label.innerHTML = `
+          <input type="checkbox" id="router-vlan-check-${vlan.id}" ${checked} style="margin-right: 8px;">
+          ${vlan.name} (Terminación: ${vlan.termination})
+        `;
+        container.appendChild(label);
+      });
+    }
+
+    function updateAllRouterVlanOptions() {
+      if (currentEditingRouter !== null) {
+        renderRouterVlanOptions(currentEditingRouter);
+      }
+    }
+
+    function validateForm() {
+      if (routers.length === 0) {
+        alert('Debes agregar al menos un router');
+        return false;
+      }
+      if (vlans.length === 0) {
+        alert('Debes agregar al menos una VLAN');
+        return false;
+      }
+      
+      for (let router of routers) {
+        if (!router.name) {
+          alert('Todos los routers deben tener nombre');
+          return false;
+        }
+      }
+      
+      for (let vlan of vlans) {
+        if (!vlan.name || !vlan.termination) {
+          alert('Todas las VLANs deben tener nombre y terminación');
+          return false;
+        }
+      }
+      
+      return true;
+    }
+
+    function prepareFormSubmit() {
+      const form = document.getElementById('main-form');
+      
+      const oldHidden = form.querySelectorAll('.generated-field');
+      oldHidden.forEach(el => el.remove());
+      
+      routers.forEach(router => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'router_name';
+        input.value = router.name;
+        input.className = 'generated-field';
+        form.appendChild(input);
+      });
+      
+      vlans.forEach(vlan => {
+        ['name', 'termination', 'prefix'].forEach(field => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `vlan_${field === 'termination' ? 'term' : field}`;
+          input.value = field === 'prefix' ? vlan.prefix : (field === 'termination' ? vlan.termination : vlan.name);
+          input.className = 'generated-field';
+          form.appendChild(input);
+        });
+      });
+      
+      routers.forEach((router, routerIdx) => {
+        router.interfaces.forEach(iface => {
+          ['type', 'number', 'target'].forEach(field => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `router_${routerIdx}_interface_${field}`;
+            input.value = iface[field];
+            input.className = 'generated-field';
+            form.appendChild(input);
+          });
+          
+          const nameInput = document.createElement('input');
+          nameInput.type = 'hidden';
+          nameInput.name = `router_${routerIdx}_interface_name`;
+          nameInput.value = iface.type;
+          nameInput.className = 'generated-field';
+          form.appendChild(nameInput);
+        });
+        
+        ['type', 'number'].forEach(field => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `router_${routerIdx}_vlan_interface_${field}`;
+          input.value = router.vlan_interface[field];
+          input.className = 'generated-field';
+          form.appendChild(input);
+        });
+        
+        const vlanNameInput = document.createElement('input');
+        vlanNameInput.type = 'hidden';
+        vlanNameInput.name = `router_${routerIdx}_vlan_interface_name`;
+        vlanNameInput.value = router.vlan_interface.type;
+        vlanNameInput.className = 'generated-field';
+        form.appendChild(vlanNameInput);
+        
+        router.assigned_vlans.forEach(vlanId => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `router_${routerIdx}_vlan_${vlanId}`;
+          input.value = '1';
+          input.className = 'generated-field';
+          form.appendChild(input);
+        });
+      });
+      
+      return validateForm();
+    }
+
+    window.onclick = function(event) {
+      if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+      }
+    }
+
+    // Inicializar vistas vacías
+    renderVlans();
+    renderRouters();
+  </script>
+</body>
+</html>

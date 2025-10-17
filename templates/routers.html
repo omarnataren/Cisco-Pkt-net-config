@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Configuración de Routers</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 40px; 
+      background: #f4f4f4; 
+    }
+    .card { 
+      background: white; 
+      padding: 30px; 
+      border-radius: 10px; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); 
+      max-width: 900px; 
+      margin: auto; 
+    }
+    input, button, select { 
+      margin-top: 8px; 
+      padding: 10px; 
+      border-radius: 6px; 
+      border: 1px solid #ccc; 
+      font-size: 14px;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button { 
+      background: #007bff; 
+      color: white; 
+      border: none; 
+      cursor: pointer; 
+      width: auto;
+      padding: 10px 20px;
+      margin-right: 10px;
+    }
+    button:hover { 
+      background: #0056b3; 
+    }
+    .btn-add {
+      background: #28a745;
+    }
+    .btn-add:hover {
+      background: #218838;
+    }
+    .section { 
+      border: 2px solid #007bff; 
+      padding: 15px; 
+      margin-top: 20px; 
+      border-radius: 8px; 
+      background: #f8f9fa; 
+    }
+    .vlan-item, .router-item { 
+      border: 1px solid #ddd; 
+      padding: 15px; 
+      margin-top: 10px; 
+      border-radius: 6px; 
+      background: white; 
+    }
+    .router-item {
+      border-color: #28a745;
+    }
+    label { 
+      font-weight: bold; 
+      display: block; 
+      margin-top: 10px; 
+    }
+    h2, h3 { 
+      color: #333; 
+    }
+    .vlan-assignment {
+      margin-top: 15px;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 6px;
+    }
+    .checkbox-group {
+      margin-top: 10px;
+    }
+    .checkbox-group label {
+      display: inline-block;
+      font-weight: normal;
+      margin-right: 15px;
+    }
+    .error {
+      color: red;
+      background: #ffe6e6;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+  </style>
+  <script>
+    let routerCounter = 0;
+    let vlanCounter = 0;
+    const vlans = [];
+    const routers = [];
+
+    function addVlan() {
+      const container = document.getElementById("vlans-list");
+      const vlanId = vlanCounter++;
+      
+      const div = document.createElement("div");
+      div.className = "vlan-item";
+      div.id = `vlan-${vlanId}`;
+      div.innerHTML = `
+        <h4>VLAN ${vlanId + 1}</h4>
+        <label>Nombre de VLAN:</label>
+        <input name="vlan_name" type="text" required placeholder="Ej: Ventas">
+        
+        <label>Terminación (número de interfaz):</label>
+        <input name="vlan_term" type="text" required placeholder="Ej: 0, 1, 2...">
+        
+        <label>Número de segmentos:</label>
+        <input name="vlan_segs" type="number" required value="1" min="1">
+      `;
+      container.appendChild(div);
+      
+      vlans.push(vlanId);
+      updateRouterVlanOptions();
+    }
+
+    function addRouter() {
+      const container = document.getElementById("routers-list");
+      const routerId = routerCounter++;
+      
+      const div = document.createElement("div");
+      div.className = "router-item";
+      div.id = `router-${routerId}`;
+      div.innerHTML = `
+        <h4>Router ${routerId + 1}</h4>
+        <label>Nombre del Router:</label>
+        <input name="router_name" type="text" required placeholder="Ej: Router-Principal">
+        
+        <div class="vlan-assignment">
+          <label>VLANs asignadas a este router:</label>
+          <div id="router-${routerId}-vlans" class="checkbox-group">
+            <em>Primero agrega VLANs en la sección superior</em>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+      
+      routers.push(routerId);
+      updateRouterVlanOptions();
+    }
+
+    function updateRouterVlanOptions() {
+      routers.forEach(routerId => {
+        const container = document.getElementById(`router-${routerId}-vlans`);
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (vlans.length === 0) {
+          container.innerHTML = '<em>Primero agrega VLANs en la sección superior</em>';
+          return;
+        }
+        
+        vlans.forEach((vlanId, index) => {
+          const vlanDiv = document.getElementById(`vlan-${vlanId}`);
+          if (!vlanDiv) return;
+          
+          const vlanNameInput = vlanDiv.querySelector('input[name="vlan_name"]');
+          const vlanName = vlanNameInput.value || `VLAN ${index + 1}`;
+          
+          const label = document.createElement('label');
+          label.innerHTML = `
+            <input type="checkbox" name="router_${routerId}_vlan_${vlanId}" value="1">
+            ${vlanName}
+          `;
+          container.appendChild(label);
+        });
+      });
+    }
+
+    // Actualizar opciones cuando cambie el nombre de una VLAN
+    document.addEventListener('input', function(e) {
+      if (e.target.name === 'vlan_name') {
+        updateRouterVlanOptions();
+      }
+    });
+
+    function validateForm() {
+      if (routers.length === 0) {
+        alert('Debes agregar al menos un router');
+        return false;
+      }
+      if (vlans.length === 0) {
+        alert('Debes agregar al menos una VLAN');
+        return false;
+      }
+      return true;
+    }
+  </script>
+</head>
+<body>
+  <div class="card">
+    <h2>🌐 Configuración de Routers para Redes</h2>
+    
+    {% if error %}
+      <div class="error">
+        <strong>Error:</strong> {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" onsubmit="return validateForm()">
+      
+      <!-- Configuración base -->
+      <div class="section">
+        <h3>Configuración Base</h3>
+        <label>Primer octeto (ej: 10, 172, 192):</label>
+        <input name="first_octet" type="text" required value="10" placeholder="10">
+      </div>
+
+      <!-- Sección de VLANs -->
+      <div class="section">
+        <h3>VLANs</h3>
+        <p>Define las VLANs que usarás en tu red. Cada VLAN puede asignarse a uno o más routers.</p>
+        <div id="vlans-list"></div>
+        <button type="button" class="btn-add" onclick="addVlan()">➕ Agregar VLAN</button>
+      </div>
+
+      <!-- Sección de Routers -->
+      <div class="section">
+        <h3>Routers</h3>
+        <p>Agrega los routers y selecciona qué VLANs manejará cada uno.</p>
+        <div id="routers-list"></div>
+        <button type="button" class="btn-add" onclick="addRouter()">➕ Agregar Router</button>
+      </div>
+
+      <br>
+      <button type="submit">🚀 Generar Configuración CLI</button>
+      <a href="/" style="margin-left: 15px; text-decoration: none; color: #007bff;">← Volver al generador de combos</a>
+    </form>
+  </div>
+</body>
+</html>

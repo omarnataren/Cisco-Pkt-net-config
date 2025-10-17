@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diseñador Visual de Redes</title>
+    
+    <!-- Vis Network Library -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Panel Izquierdo - Herramientas */
+        .left-panel {
+            width: 300px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .panel-header {
+            background: #21262d;
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .panel-header h2 {
+            color: #58a6ff;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .tool-section {
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .tool-section h3 {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #2ea043;
+        }
+        
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+        
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        
+        .btn-danger {
+            background: #da3633;
+        }
+        
+        .btn-danger:hover {
+            background: #f85149;
+        }
+        
+        .btn-primary {
+            background: #58a6ff;
+        }
+        
+        .btn-primary:hover {
+            background: #79c0ff;
+        }
+        
+        /* Panel Central - Canvas de Red */
+        .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toolbar {
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .toolbar-btn {
+            padding: 8px 16px;
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .toolbar-btn:hover {
+            background: #30363d;
+            border-color: #58a6ff;
+        }
+        
+        .toolbar-btn.active {
+            background: #58a6ff;
+            color: white;
+            border-color: #58a6ff;
+        }
+        
+        #network-canvas {
+            flex: 1;
+            background: #0d1117;
+        }
+        
+        /* Panel Derecho - Propiedades */
+        .right-panel {
+            width: 350px;
+            background: #161b22;
+            border-left: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .properties-header {
+            background: #21262d;
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .properties-content {
+            padding: 20px;
+        }
+        
+        .property-group {
+            margin-bottom: 20px;
+        }
+        
+        .property-group h4 {
+            color: #58a6ff;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .vlan-list,
+        .interface-list {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .vlan-item,
+        .interface-item {
+            background: #21262d;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .vlan-item:last-child,
+        .interface-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .item-info {
+            flex: 1;
+        }
+        
+        .item-info strong {
+            color: #c9d1d9;
+            display: block;
+        }
+        
+        .item-info small {
+            color: #8b949e;
+            font-size: 11px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+        
+        .checkbox-item label {
+            color: #c9d1d9;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #8b949e;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+        
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        .action-buttons {
+            padding: 20px;
+            border-top: 1px solid #30363d;
+            background: #161b22;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #238636;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .notification.error {
+            background: #da3633;
+        }
+        
+        /* Modal para conexiones */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .modal-content {
+            background: #161b22;
+            margin: 10% auto;
+            padding: 30px;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90%;
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            color: #58a6ff;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        .modal-header p {
+            color: #8b949e;
+            font-size: 13px;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .interface-selector {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .interface-box {
+            background: #0d1117;
+            padding: 15px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+        
+        .interface-box h4 {
+            color: #58a6ff;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .arrow {
+            color: #8b949e;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Panel Izquierdo -->
+        <div class="left-panel">
+            <div class="panel-header">
+                <h2>⚙️ Configuración de Red</h2>
+                <p style="color: #8b949e; font-size: 12px; margin-top: 5px;">
+                    Diseña tu topología de red
+                </p>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Red Base</h3>
+                <div class="input-group">
+                    <label>Primer Octeto</label>
+                    <input type="number" id="first-octet" value="192" min="1" max="255">
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Agregar Router</h3>
+                <div class="input-group">
+                    <label>Nombre del Router</label>
+                    <input type="text" id="router-name" placeholder="Ej: R1">
+                </div>
+                <div class="input-group">
+                    <label>Interfaz para VLANs</label>
+                    <select id="router-vlan-interface-type">
+                        <option value="eth">Ethernet (eth)</option>
+                        <option value="gi">GigabitEthernet (gi)</option>
+                        <option value="fa">FastEthernet (fa)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Número de Interfaz VLANs</label>
+                    <input type="text" id="router-vlan-interface-number" placeholder="Ej: 0/2/0" value="0/2/0">
+                </div>
+                <button class="btn" onclick="addRouter()">➕ Agregar Router</button>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Agregar Switch Core</h3>
+                <div class="input-group">
+                    <label>Nombre del Switch</label>
+                    <input type="text" id="switch-name" placeholder="Ej: SW1">
+                </div>
+                <div class="input-group">
+                    <label>Interfaz Trunk</label>
+                    <select id="switch-trunk-interface-type">
+                        <option value="fa">FastEthernet</option>
+                        <option value="gi">GigabitEthernet</option>
+                        <option value="eth">Ethernet</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Número Interfaz Trunk</label>
+                    <input type="text" id="switch-trunk-number" placeholder="Ej: 0/3" value="0/3">
+                </div>
+                <button class="btn" onclick="addSwitch()">➕ Agregar Switch Core</button>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Agregar VLAN</h3>
+                <div class="input-group">
+                    <label>Nombre de VLAN</label>
+                    <input type="text" id="vlan-name" placeholder="Ej: VLAN 10">
+                </div>
+                <div class="input-group">
+                    <label>Terminación (Tag)</label>
+                    <input type="number" id="vlan-termination" placeholder="Ej: 10" min="1" max="4094">
+                </div>
+                <div class="input-group">
+                    <label>Prefijo de Red</label>
+                    <select id="vlan-prefix">
+                        <option value="24">/24 (255.255.255.0)</option>
+                        <option value="25">/25 (255.255.255.128)</option>
+                        <option value="26">/26 (255.255.255.192)</option>
+                        <option value="22">/22 (255.255.252.0)</option>
+                        <option value="21">/21 (255.255.248.0)</option>
+                        <option value="20">/20 (255.255.240.0)</option>
+                        <option value="19">/19 (255.255.224.0)</option>
+                        <option value="18">/18 (255.255.192.0)</option>
+                        <option value="17">/17 (255.255.128.0)</option>
+                        <option value="16">/16 (255.255.0.0)</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="addVLAN()">➕ Agregar VLAN</button>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="generateConfig()">🚀 Generar Configuración</button>
+                <button class="btn btn-secondary" onclick="clearAll()">🗑️ Limpiar Todo</button>
+            </div>
+        </div>
+        
+        <!-- Panel Central -->
+        <div class="center-panel">
+            <div class="toolbar">
+                <button class="toolbar-btn active" onclick="setMode('select')" id="btn-select">
+                    🖱️ Seleccionar
+                </button>
+                <button class="toolbar-btn" onclick="setMode('connect')" id="btn-connect">
+                    🔗 Conectar
+                </button>
+                <button class="toolbar-btn" onclick="deleteSelected()">
+                    🗑️ Eliminar
+                </button>
+                <div style="flex: 1;"></div>
+                <button class="toolbar-btn" onclick="fitNetwork()">
+                    🔍 Ajustar Vista
+                </button>
+            </div>
+            <div id="network-canvas"></div>
+        </div>
+        
+        <!-- Panel Derecho -->
+        <div class="right-panel">
+            <div class="properties-header">
+                <h2>📋 Propiedades</h2>
+            </div>
+            
+            <div id="properties-content" class="properties-content">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <p>Selecciona un router o conexión<br>para ver sus propiedades</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Conexión -->
+    <div id="connection-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔗 Configurar Conexión</h3>
+                <p>Define las interfaces para esta conexión backbone</p>
+            </div>
+            <div class="modal-body">
+                <div class="interface-selector">
+                    <div class="interface-box">
+                        <h4 id="conn-from-router">Router 1</h4>
+                        <div class="input-group">
+                            <label>Tipo de Interfaz</label>
+                            <select id="conn-from-type">
+                                <option value="fa">FastEthernet</option>
+                                <option value="gi">GigabitEthernet</option>
+                                <option value="eth">Ethernet</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Número</label>
+                            <input type="text" id="conn-from-number" placeholder="0/0/0">
+                        </div>
+                    </div>
+                    
+                    <div class="arrow">↔</div>
+                    
+                    <div class="interface-box">
+                        <h4 id="conn-to-router">Router 2</h4>
+                        <div class="input-group">
+                            <label>Tipo de Interfaz</label>
+                            <select id="conn-to-type">
+                                <option value="fa">FastEthernet</option>
+                                <option value="gi">GigabitEthernet</option>
+                                <option value="eth">Ethernet</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Número</label>
+                            <input type="text" id="conn-to-number" placeholder="0/0/1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConnectionModal()">Cancelar</button>
+                <button class="btn" onclick="saveConnection()">Guardar Conexión</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notificación -->
+    <div id="notification" class="notification"></div>
+    
+    <script>
+        // Variables globales
+        let network = null;
+        let nodes = new vis.DataSet([]);
+        let edges = new vis.DataSet([]);
+        let currentMode = 'select';
+        let selectedNode = null;
+        let vlans = [];
+        let pendingConnection = null;
+        
+        // Inicializar red
+        function initNetwork() {
+            const container = document.getElementById('network-canvas');
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                nodes: {
+                    shape: 'circle',
+                    size: 35,
+                    borderWidth: 3,
+                    color: {
+                        background: '#58a6ff',
+                        border: '#79c0ff',
+                        highlight: { 
+                            background: '#79c0ff', 
+                            border: '#ffffff' 
+                        }
+                    },
+                    font: { 
+                        color: '#0d1117', 
+                        size: 16, 
+                        face: 'Segoe UI',
+                        bold: true
+                    }
+                },
+                edges: {
+                    color: { color: '#58a6ff', highlight: '#79c0ff' },
+                    width: 3,
+                    smooth: { type: 'continuous' }
+                },
+                physics: {
+                    enabled: false
+                },
+                interaction: {
+                    dragNodes: true,
+                    dragView: true,
+                    zoomView: true,
+                    hover: true
+                }
+            };
+            
+            network = new vis.Network(container, data, options);
+            
+            // Eventos
+            network.on('click', function(params) {
+                if (params.nodes.length > 0) {
+                    selectNode(params.nodes[0]);
+                } else if (params.edges.length > 0) {
+                    selectEdge(params.edges[0]);
+                } else {
+                    clearSelection();
+                }
+            });
+            
+            network.on('doubleClick', function(params) {
+                if (currentMode === 'connect' && params.nodes.length > 0) {
+                    handleConnectionClick(params.nodes[0]);
+                }
+            });
+            
+            // Detener física después de estabilización
+            network.on('stabilizationIterationsDone', function() {
+                network.setOptions({ physics: false });
+            });
+            
+            // Ajustar vista inicial
+            setTimeout(() => {
+                network.fit({ animation: true });
+            }, 500);
+        }
+        
+        // Agregar router
+        function addRouter() {
+            const name = document.getElementById('router-name').value.trim();
+            const vlanIntType = document.getElementById('router-vlan-interface-type').value;
+            const vlanIntNumber = document.getElementById('router-vlan-interface-number').value.trim();
+            
+            if (!name) {
+                showNotification('Por favor ingresa un nombre para el router', 'error');
+                return;
+            }
+            
+            // Calcular posición aleatoria cerca del centro
+            const x = (Math.random() - 0.5) * 400;
+            const y = (Math.random() - 0.5) * 400;
+            
+            const id = 'router_' + Date.now();
+            nodes.add({
+                id: id,
+                label: name,
+                title: 'Router',
+                x: x,
+                y: y,
+                color: {
+                    background: '#21262d',
+                    border: '#58a6ff'
+                },
+                data: {
+                    type: 'router',
+                    name: name,
+                    vlans: [],
+                    interfaces: [],
+                    vlanInterfaceType: vlanIntType,
+                    vlanInterfaceNumber: vlanIntNumber
+                }
+            });
+            
+            document.getElementById('router-name').value = '';
+            
+            // Centrar la vista en el nuevo nodo
+            setTimeout(() => {
+                network.focus(id, {
+                    scale: 1,
+                    animation: true
+                });
+            }, 100);
+            
+            showNotification('Router agregado: ' + name);
+        }
+        
+        // Agregar switch core
+        function addSwitch() {
+            const name = document.getElementById('switch-name').value.trim();
+            const trunkIntType = document.getElementById('switch-trunk-interface-type').value;
+            const trunkIntNumber = document.getElementById('switch-trunk-number').value.trim();
+            
+            if (!name) {
+                showNotification('Por favor ingresa un nombre para el switch', 'error');
+                return;
+            }
+            
+            // Calcular posición aleatoria cerca del centro
+            const x = (Math.random() - 0.5) * 400;
+            const y = (Math.random() - 0.5) * 400;
+            
+            const id = 'switch_' + Date.now();
+            nodes.add({
+                id: id,
+                label: name,
+                title: 'Switch Core',
+                x: x,
+                y: y,
+                color: {
+                    background: '#2d2d2d',
+                    border: '#238636'
+                },
+                data: {
+                    type: 'switch_core',
+                    name: name,
+                    vlans: [],
+                    interfaces: [],
+                    trunkInterfaceType: trunkIntType,
+                    trunkInterfaceNumber: trunkIntNumber
+                }
+            });
+            
+            document.getElementById('switch-name').value = '';
+            
+            // Centrar la vista en el nuevo nodo
+            setTimeout(() => {
+                network.focus(id, {
+                    scale: 1,
+                    animation: true
+                });
+            }, 100);
+            
+            showNotification('Switch Core agregado: ' + name);
+        }
+        
+        // Agregar VLAN
+        function addVLAN() {
+            const name = document.getElementById('vlan-name').value.trim();
+            const termination = document.getElementById('vlan-termination').value;
+            const prefix = document.getElementById('vlan-prefix').value;
+            
+            if (!name || !termination) {
+                showNotification('Completa todos los campos de VLAN', 'error');
+                return;
+            }
+            
+            vlans.push({
+                id: 'vlan_' + Date.now(),
+                name: name,
+                termination: termination,
+                prefix: prefix
+            });
+            
+            document.getElementById('vlan-name').value = '';
+            document.getElementById('vlan-termination').value = '';
+            
+            showNotification('VLAN agregada: ' + name);
+            
+            // Actualizar propiedades si hay un router seleccionado
+            if (selectedNode && selectedNode.startsWith('router_')) {
+                selectNode(selectedNode);
+            }
+        }
+        
+        // Modo de interacción
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + mode).classList.add('active');
+            
+            if (mode === 'connect') {
+                showNotification('Haz doble clic en dos routers para conectarlos');
+            }
+        }
+        
+        // Manejar conexión
+        function handleConnectionClick(nodeId) {
+            if (!pendingConnection) {
+                pendingConnection = nodeId;
+                showNotification('Ahora haz doble clic en el router destino');
+            } else {
+                if (pendingConnection === nodeId) {
+                    showNotification('No puedes conectar un router consigo mismo', 'error');
+                    pendingConnection = null;
+                    return;
+                }
+                
+                openConnectionModal(pendingConnection, nodeId);
+            }
+        }
+        
+        // Abrir modal de conexión
+        function openConnectionModal(fromId, toId) {
+            const fromNode = nodes.get(fromId);
+            const toNode = nodes.get(toId);
+            
+            document.getElementById('conn-from-router').textContent = fromNode.data.name;
+            document.getElementById('conn-to-router').textContent = toNode.data.name;
+            
+            document.getElementById('connection-modal').style.display = 'block';
+            
+            // Guardar datos temporales
+            window.connectionData = { fromId, toId };
+        }
+        
+        // Cerrar modal
+        function closeConnectionModal() {
+            document.getElementById('connection-modal').style.display = 'none';
+            pendingConnection = null;
+        }
+        
+        // Guardar conexión
+        function saveConnection() {
+            const { fromId, toId } = window.connectionData;
+            
+            const fromType = document.getElementById('conn-from-type').value;
+            const fromNumber = document.getElementById('conn-from-number').value.trim();
+            const toType = document.getElementById('conn-to-type').value;
+            const toNumber = document.getElementById('conn-to-number').value.trim();
+            
+            if (!fromNumber || !toNumber) {
+                showNotification('Completa los números de interfaz', 'error');
+                return;
+            }
+            
+            const edgeId = 'edge_' + Date.now();
+            edges.add({
+                id: edgeId,
+                from: fromId,
+                to: toId,
+                data: {
+                    fromInterface: { type: fromType, number: fromNumber },
+                    toInterface: { type: toType, number: toNumber }
+                }
+            });
+            
+            // Actualizar datos de nodos
+            const fromNode = nodes.get(fromId);
+            const toNode = nodes.get(toId);
+            
+            fromNode.data.interfaces.push({
+                type: fromType,
+                number: fromNumber,
+                target: toNode.data.name,
+                edgeId: edgeId
+            });
+            
+            toNode.data.interfaces.push({
+                type: toType,
+                number: toNumber,
+                target: fromNode.data.name,
+                edgeId: edgeId
+            });
+            
+            nodes.update(fromNode);
+            nodes.update(toNode);
+            
+            closeConnectionModal();
+            pendingConnection = null;
+            showNotification('Conexión creada exitosamente');
+        }
+        
+        // Seleccionar nodo
+        function selectNode(nodeId) {
+            selectedNode = nodeId;
+            const node = nodes.get(nodeId);
+            
+            if (node.data.type === 'router') {
+                showRouterProperties(node);
+            } else if (node.data.type === 'switch_core') {
+                showSwitchProperties(node);
+            }
+        }
+        
+        // Seleccionar edge
+        function selectEdge(edgeId) {
+            const edge = edges.get(edgeId);
+            const fromNode = nodes.get(edge.from);
+            const toNode = nodes.get(edge.to);
+            
+            const html = `
+                <div class="property-group">
+                    <h4>Conexión Backbone</h4>
+                    <div style="background: #0d1117; padding: 15px; border-radius: 6px; border: 1px solid #30363d;">
+                        <p style="margin-bottom: 10px;">
+                            <strong style="color: #58a6ff;">${fromNode.data.name}</strong><br>
+                            <span style="color: #8b949e; font-size: 12px;">
+                                ${edge.data.fromInterface.type}${edge.data.fromInterface.number}
+                            </span>
+                        </p>
+                        <p style="text-align: center; color: #8b949e; margin: 10px 0;">↕</p>
+                        <p style="margin-top: 10px;">
+                            <strong style="color: #58a6ff;">${toNode.data.name}</strong><br>
+                            <span style="color: #8b949e; font-size: 12px;">
+                                ${edge.data.toInterface.type}${edge.data.toInterface.number}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                <button class="btn btn-danger" onclick="deleteEdge('${edgeId}')">🗑️ Eliminar Conexión</button>
+            `;
+            
+            document.getElementById('properties-content').innerHTML = html;
+        }
+        
+        // Mostrar propiedades de router
+        function showRouterProperties(node) {
+            let vlansHtml = '';
+            
+            if (vlans.length > 0) {
+                vlansHtml = '<div class="checkbox-group">';
+                vlans.forEach(vlan => {
+                    const checked = node.data.vlans.includes(vlan.id) ? 'checked' : '';
+                    vlansHtml += `
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="vlan_${vlan.id}" value="${vlan.id}" 
+                                   onchange="toggleVLAN('${node.id}', '${vlan.id}')" ${checked}>
+                            <label for="vlan_${vlan.id}">${vlan.name}</label>
+                        </div>
+                    `;
+                });
+                vlansHtml += '</div>';
+            } else {
+                vlansHtml = '<p style="color: #8b949e; font-size: 12px;">No hay VLANs disponibles</p>';
+            }
+            
+            let interfacesHtml = '';
+            if (node.data.interfaces.length > 0) {
+                interfacesHtml = '<div class="interface-list">';
+                node.data.interfaces.forEach(iface => {
+                    interfacesHtml += `
+                        <div class="interface-item">
+                            <div class="item-info">
+                                <strong>${iface.type}${iface.number}</strong>
+                                <small>→ ${iface.target}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                interfacesHtml += '</div>';
+            } else {
+                interfacesHtml = '<p style="color: #8b949e; font-size: 12px;">Sin conexiones</p>';
+            }
+            
+            const html = `
+                <div class="property-group">
+                    <h4>Router: ${node.data.name}</h4>
+                    <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">
+                        Interfaz VLANs: ${node.data.vlanInterfaceType}${node.data.vlanInterfaceNumber}
+                    </p>
+                </div>
+                
+                <div class="property-group">
+                    <h4>VLANs Asignadas</h4>
+                    ${vlansHtml}
+                </div>
+                
+                <div class="property-group">
+                    <h4>Conexiones Backbone</h4>
+                    ${interfacesHtml}
+                </div>
+                
+                <button class="btn btn-danger" onclick="deleteNode('${node.id}')">🗑️ Eliminar Router</button>
+            `;
+            
+            document.getElementById('properties-content').innerHTML = html;
+        }
+        
+        // Mostrar propiedades de switch
+        function showSwitchProperties(node) {
+            let vlansHtml = '';
+            
+            if (vlans.length > 0) {
+                vlansHtml = '<div class="checkbox-group">';
+                vlans.forEach(vlan => {
+                    const checked = node.data.vlans.includes(vlan.id) ? 'checked' : '';
+                    vlansHtml += `
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="vlan_${vlan.id}" value="${vlan.id}" 
+                                   onchange="toggleVLAN('${node.id}', '${vlan.id}')" ${checked}>
+                            <label for="vlan_${vlan.id}">${vlan.name}</label>
+                        </div>
+                    `;
+                });
+                vlansHtml += '</div>';
+            } else {
+                vlansHtml = '<p style="color: #8b949e; font-size: 12px;">No hay VLANs disponibles</p>';
+            }
+            
+            let interfacesHtml = '';
+            if (node.data.interfaces.length > 0) {
+                interfacesHtml = '<div class="interface-list">';
+                node.data.interfaces.forEach(iface => {
+                    interfacesHtml += `
+                        <div class="interface-item">
+                            <div class="item-info">
+                                <strong>${iface.type}${iface.number}</strong>
+                                <small>→ ${iface.target}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                interfacesHtml += '</div>';
+            } else {
+                interfacesHtml = '<p style="color: #8b949e; font-size: 12px;">Sin conexiones</p>';
+            }
+            
+            const html = `
+                <div class="property-group">
+                    <h4>🔀 Switch Core: ${node.data.name}</h4>
+                    <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">
+                        Interfaz Trunk: ${node.data.trunkInterfaceType}${node.data.trunkInterfaceNumber}
+                    </p>
+                </div>
+                
+                <div class="property-group">
+                    <h4>VLANs Configuradas</h4>
+                    ${vlansHtml}
+                </div>
+                
+                <div class="property-group">
+                    <h4>Conexiones Backbone</h4>
+                    ${interfacesHtml}
+                </div>
+                
+                <button class="btn btn-danger" onclick="deleteNode('${node.id}')">🗑️ Eliminar Switch</button>
+            `;
+            
+            document.getElementById('properties-content').innerHTML = html;
+        }
+        
+        // Toggle VLAN
+        function toggleVLAN(nodeId, vlanId) {
+            const node = nodes.get(nodeId);
+            const index = node.data.vlans.indexOf(vlanId);
+            
+            if (index > -1) {
+                node.data.vlans.splice(index, 1);
+            } else {
+                node.data.vlans.push(vlanId);
+            }
+            
+            nodes.update(node);
+            showNotification('VLANs actualizadas');
+        }
+        
+        // Limpiar selección
+        function clearSelection() {
+            selectedNode = null;
+            document.getElementById('properties-content').innerHTML = `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <p>Selecciona un router o conexión<br>para ver sus propiedades</p>
+                </div>
+            `;
+        }
+        
+        // Eliminar nodo
+        function deleteNode(nodeId) {
+            if (confirm('¿Eliminar este router y todas sus conexiones?')) {
+                nodes.remove(nodeId);
+                clearSelection();
+                showNotification('Router eliminado');
+            }
+        }
+        
+        // Eliminar edge
+        function deleteEdge(edgeId) {
+            if (confirm('¿Eliminar esta conexión?')) {
+                const edge = edges.get(edgeId);
+                
+                // Remover interfaces de los nodos
+                const fromNode = nodes.get(edge.from);
+                const toNode = nodes.get(edge.to);
+                
+                fromNode.data.interfaces = fromNode.data.interfaces.filter(i => i.edgeId !== edgeId);
+                toNode.data.interfaces = toNode.data.interfaces.filter(i => i.edgeId !== edgeId);
+                
+                nodes.update(fromNode);
+                nodes.update(toNode);
+                
+                edges.remove(edgeId);
+                clearSelection();
+                showNotification('Conexión eliminada');
+            }
+        }
+        
+        // Eliminar seleccionado
+        function deleteSelected() {
+            const selected = network.getSelectedNodes();
+            if (selected.length > 0) {
+                deleteNode(selected[0]);
+            } else {
+                const selectedEdges = network.getSelectedEdges();
+                if (selectedEdges.length > 0) {
+                    deleteEdge(selectedEdges[0]);
+                }
+            }
+        }
+        
+        // Ajustar vista
+        function fitNetwork() {
+            network.fit({ animation: true });
+        }
+        
+        // Limpiar todo
+        function clearAll() {
+            if (confirm('¿Eliminar todos los routers, VLANs y conexiones?')) {
+                nodes.clear();
+                edges.clear();
+                vlans = [];
+                clearSelection();
+                showNotification('Todo limpiado');
+            }
+        }
+        
+        // Generar configuración
+        function generateConfig() {
+            const firstOctet = document.getElementById('first-octet').value;
+            
+            if (nodes.length === 0) {
+                showNotification('Agrega al menos un router', 'error');
+                return;
+            }
+            
+            // Crear formulario
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/';
+            
+            // Primer octeto
+            form.appendChild(createInput('first_octet', firstOctet));
+            
+            // VLANs
+            vlans.forEach(vlan => {
+                form.appendChild(createInput('vlan_name', vlan.name));
+                form.appendChild(createInput('vlan_term', vlan.termination));
+                form.appendChild(createInput('vlan_prefix', vlan.prefix));
+            });
+            
+            // Routers y Switches
+            const devicesList = nodes.get();
+            let routerIdx = 0;
+            let switchIdx = 0;
+            
+            devicesList.forEach((node) => {
+                if (node.data.type === 'router') {
+                    form.appendChild(createInput('router_name', node.data.name));
+                    form.appendChild(createInput('router_type', 'router'));
+                    
+                    // Interfaz VLAN
+                    form.appendChild(createInput(`router_${routerIdx}_vlan_interface_type`, node.data.vlanInterfaceType));
+                    form.appendChild(createInput(`router_${routerIdx}_vlan_interface_name`, node.data.vlanInterfaceType));
+                    form.appendChild(createInput(`router_${routerIdx}_vlan_interface_number`, node.data.vlanInterfaceNumber));
+                    
+                    // VLANs asignadas
+                    node.data.vlans.forEach(vlanId => {
+                        const vlan = vlans.find(v => v.id === vlanId);
+                        if (vlan) {
+                            const vlanIndex = vlans.indexOf(vlan);
+                            form.appendChild(createInput(`router_${routerIdx}_vlan_${vlanIndex}`, 'on'));
+                        }
+                    });
+                    
+                    // Interfaces backbone
+                    node.data.interfaces.forEach(iface => {
+                        form.appendChild(createInput(`router_${routerIdx}_interface_type`, iface.type));
+                        form.appendChild(createInput(`router_${routerIdx}_interface_name`, iface.type));
+                        form.appendChild(createInput(`router_${routerIdx}_interface_number`, iface.number));
+                        
+                        // Buscar índice del dispositivo target
+                        const targetNode = devicesList.find(n => n.data.name === iface.target);
+                        if (targetNode) {
+                            if (targetNode.data.type === 'router') {
+                                const targetRouterIdx = devicesList.filter((n, i) => i < devicesList.indexOf(targetNode) && n.data.type === 'router').length;
+                                form.appendChild(createInput(`router_${routerIdx}_interface_target`, `router_${targetRouterIdx}`));
+                            } else if (targetNode.data.type === 'switch_core') {
+                                const targetSwitchIdx = devicesList.filter((n, i) => i < devicesList.indexOf(targetNode) && n.data.type === 'switch_core').length;
+                                form.appendChild(createInput(`router_${routerIdx}_interface_target`, `switch_${targetSwitchIdx}`));
+                            }
+                        }
+                    });
+                    
+                    routerIdx++;
+                } else if (node.data.type === 'switch_core') {
+                    form.appendChild(createInput('router_name', node.data.name));
+                    form.appendChild(createInput('router_type', 'switch_core'));
+                    
+                    // Interfaz trunk
+                    form.appendChild(createInput(`router_${routerIdx}_trunk_interface_type`, node.data.trunkInterfaceType));
+                    form.appendChild(createInput(`router_${routerIdx}_trunk_interface_number`, node.data.trunkInterfaceNumber));
+                    
+                    // VLANs asignadas
+                    node.data.vlans.forEach(vlanId => {
+                        const vlan = vlans.find(v => v.id === vlanId);
+                        if (vlan) {
+                            const vlanIndex = vlans.indexOf(vlan);
+                            form.appendChild(createInput(`router_${routerIdx}_vlan_${vlanIndex}`, 'on'));
+                        }
+                    });
+                    
+                    // Interfaces backbone
+                    node.data.interfaces.forEach(iface => {
+                        form.appendChild(createInput(`router_${routerIdx}_interface_type`, iface.type));
+                        form.appendChild(createInput(`router_${routerIdx}_interface_name`, iface.type));
+                        form.appendChild(createInput(`router_${routerIdx}_interface_number`, iface.number));
+                        
+                        // Buscar índice del dispositivo target
+                        const targetNode = devicesList.find(n => n.data.name === iface.target);
+                        if (targetNode) {
+                            if (targetNode.data.type === 'router') {
+                                const targetRouterIdx = devicesList.filter((n, i) => i < devicesList.indexOf(targetNode) && n.data.type === 'router').length;
+                                form.appendChild(createInput(`router_${routerIdx}_interface_target`, `router_${targetRouterIdx}`));
+                            } else if (targetNode.data.type === 'switch_core') {
+                                const targetSwitchIdx = devicesList.filter((n, i) => i < devicesList.indexOf(targetNode) && n.data.type === 'switch_core').length;
+                                form.appendChild(createInput(`router_${routerIdx}_interface_target`, `switch_${targetSwitchIdx}`));
+                            }
+                        }
+                    });
+                    
+                    routerIdx++;
+                    switchIdx++;
+                }
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // Crear input hidden
+        function createInput(name, value) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            return input;
+        }
+        
+        // Notificación
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification ' + type;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Inicializar al cargar
+        window.onload = function() {
+            initNetwork();
+        };
+    </script>
+</body>
+</html>

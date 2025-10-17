@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Configuración CLI Generada</title>
+  <style>
+    body { 
+      font-family: 'Courier New', monospace; 
+      margin: 40px; 
+      background: #1e1e1e; 
+      color: #d4d4d4;
+    }
+    .container { 
+      max-width: 1200px; 
+      margin: auto; 
+    }
+    .header {
+      background: #2d2d2d;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    h1 { 
+      color: #4ec9b0; 
+      margin: 0;
+    }
+    .router-config { 
+      background: #2d2d2d; 
+      padding: 25px; 
+      margin-bottom: 30px; 
+      border-radius: 8px; 
+      border-left: 5px solid #4ec9b0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .router-config h2 { 
+      color: #4ec9b0; 
+      margin-top: 0;
+      font-size: 24px;
+      border-bottom: 2px solid #4ec9b0;
+      padding-bottom: 10px;
+    }
+    .command-block { 
+      background: #1e1e1e; 
+      padding: 20px; 
+      border-radius: 5px; 
+      margin-top: 15px;
+      overflow-x: auto;
+      border: 1px solid #3e3e3e;
+    }
+    .command { 
+      color: #dcdcaa; 
+      margin: 5px 0;
+      line-height: 1.6;
+    }
+    .comment { 
+      color: #6a9955; 
+      font-style: italic;
+    }
+    .keyword { 
+      color: #c586c0; 
+    }
+    .string { 
+      color: #ce9178; 
+    }
+    button { 
+      background: #0e639c; 
+      color: white; 
+      border: none; 
+      padding: 12px 24px; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover { 
+      background: #1177bb; 
+    }
+    .actions {
+      text-align: center;
+      margin-top: 30px;
+      background: #2d2d2d;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    a {
+      color: #4ec9b0;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .copy-btn {
+      background: #4ec9b0;
+      float: right;
+      padding: 8px 16px;
+      font-size: 12px;
+    }
+    .copy-btn:hover {
+      background: #6dd9bf;
+    }
+    .success-message {
+      background: #0e639c;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 5px;
+      display: none;
+      float: right;
+      margin-left: 10px;
+      font-size: 12px;
+    }
+    .routes-section {
+      background: #252526;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #4ec9b0;
+    }
+    .routes-section h3 {
+      color: #4ec9b0;
+      margin-top: 0;
+      font-size: 16px;
+    }
+    .route-item {
+      background: #1e1e1e;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 4px;
+      border-left: 3px solid #dcdcaa;
+    }
+    .route-item label {
+      color: #9cdcfe;
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+    .route-item input, .route-item select {
+      background: #2d2d2d;
+      border: 1px solid #3e3e3e;
+      color: #d4d4d4;
+      padding: 6px 10px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      width: 180px;
+      margin-right: 10px;
+    }
+    .route-item .route-info {
+      color: #6a9955;
+      font-size: 11px;
+      margin-top: 5px;
+    }
+    .route-warning {
+      background: #5a3e1b;
+      color: #f0ad4e;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 12px;
+      border-left: 3px solid #f0ad4e;
+    }
+    .regenerate-btn {
+      background: #4ec9b0;
+      padding: 8px 16px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .regenerate-btn:hover {
+      background: #6dd9bf;
+    }
+  </style>
+  <script>
+    // Función para regenerar la configuración con rutas editadas
+    function regenerateConfig(routerIndex) {
+      const configBlock = document.getElementById(`config-${routerIndex}`);
+      const routeItems = document.querySelectorAll(`#routes-${routerIndex} .route-item`);
+      
+      // Obtener configuración base (todo antes de rutas estáticas)
+      let lines = configBlock.innerText.split('\n');
+      let baseConfig = [];
+      let inRoutes = false;
+      
+      for (let line of lines) {
+        if (line.includes('=== Rutas Estáticas ===')) {
+          inRoutes = true;
+          break;
+        }
+        if (!inRoutes) {
+          baseConfig.push(line);
+        }
+      }
+      
+      // Agregar rutas editadas
+      let routeLines = ['! === Rutas Estáticas ==='];
+      routeItems.forEach(item => {
+        const network = item.querySelector('.route-network').value;
+        const netmask = item.querySelector('.route-netmask').value;
+        const nextHop = item.querySelector('.route-nexthop').value;
+        const comment = item.querySelector('.route-comment').textContent;
+        
+        routeLines.push(comment);
+        routeLines.push(`ip route ${network} ${netmask} ${nextHop}`);
+      });
+      
+      // Agregar "end" al final si no está
+      if (!baseConfig[baseConfig.length - 1].includes('end')) {
+        routeLines.push('');
+        routeLines.push('end');
+        routeLines.push('');
+      } else {
+        // Insertar antes del "end"
+        const endLine = baseConfig.pop();
+        const emptyLine = baseConfig.pop();
+        baseConfig = baseConfig.concat(routeLines);
+        baseConfig.push(emptyLine);
+        baseConfig.push(endLine);
+      }
+      
+      // Actualizar el bloque de configuración
+      configBlock.innerHTML = '';
+      (baseConfig.length > 0 ? baseConfig : baseConfig.concat(routeLines)).forEach(line => {
+        const div = document.createElement('div');
+        div.className = line.startsWith('!') ? 'command comment' : 'command';
+        div.textContent = line;
+        configBlock.appendChild(div);
+      });
+      
+      alert('✓ Configuración regenerada con las rutas editadas');
+    }
+    function copyConfig(routerIndex) {
+      const configBlock = document.getElementById(`config-${routerIndex}`);
+      const text = configBlock.innerText;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        const msg = document.getElementById(`success-${routerIndex}`);
+        msg.style.display = 'inline-block';
+        setTimeout(() => {
+          msg.style.display = 'none';
+        }, 2000);
+      });
+    }
+
+    function copyAllConfigs() {
+      let allText = '';
+      document.querySelectorAll('.command-block').forEach((block, index) => {
+        if (index > 0) allText += '\n\n';
+        allText += block.innerText;
+      });
+      
+      navigator.clipboard.writeText(allText).then(() => {
+        alert('¡Todas las configuraciones copiadas al portapapeles!');
+      });
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🖥️ Configuración CLI de Routers</h1>
+      <p style="margin: 10px 0 0 0; color: #888;">Comandos generados para Cisco IOS</p>
+    </div>
+
+    {% for router in routers %}
+    <div class="router-config">
+      <h2>{{ router.name }}</h2>
+      <button class="copy-btn" onclick="copyConfig({{ loop.index0 }})">📋 Copiar</button>
+      <span id="success-{{ loop.index0 }}" class="success-message">✓ Copiado</span>
+      <div style="clear: both;"></div>
+      
+      {% if router.routes %}
+      <div class="routes-section" id="routes-{{ loop.index0 }}">
+        <h3>🔀 Rutas Estáticas Generadas ({{ router.routes|length }} rutas)</h3>
+        <p style="color: #888; font-size: 12px; margin: 5px 0 10px 0;">
+          Estas rutas fueron generadas automáticamente. Puedes editarlas si es necesario.
+        </p>
+        
+        {% for route in router.routes %}
+        <div class="route-item">
+          <div style="display: flex; align-items: center; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+              <label>Red de Destino:</label>
+              <input type="text" class="route-network" value="{{ route.network.network_address }}" readonly style="background: #1a1a1a;">
+            </div>
+            <div style="flex: 1; min-width: 180px;">
+              <label>Máscara:</label>
+              <input type="text" class="route-netmask" value="{{ route.network.netmask }}" readonly style="background: #1a1a1a;">
+            </div>
+            <div style="flex: 1; min-width: 180px;">
+              <label>Next-Hop (editable):</label>
+              <input type="text" class="route-nexthop" value="{{ route.next_hop }}" 
+                     title="Edita esta IP si deseas cambiar el next-hop">
+            </div>
+          </div>
+          <div class="route-info">
+            <span class="route-comment">! Ruta a {{ route.destination_router }}{% if route.via_router %} vía {{ route.via_router }}{% endif %}</span>
+            <br>
+            📍 Salida por interfaz: <strong>{{ route.next_hop_interface }}</strong>
+          </div>
+          {% if route.via_router %}
+          <div class="route-warning">
+            ⚠️ Ruta indirecta: Esta ruta pasa por el router intermedio "{{ route.via_router }}". 
+            Verifica que la topología sea correcta.
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        
+        <button class="regenerate-btn" onclick="regenerateConfig({{ loop.index0 }})">
+          🔄 Aplicar Cambios a la Configuración
+        </button>
+      </div>
+      {% else %}
+      <div class="routes-section">
+        <p style="color: #888; font-size: 12px; margin: 0;">
+          ℹ️ No se generaron rutas para este router (todas las redes están directamente conectadas).
+        </p>
+      </div>
+      {% endif %}
+      
+      <div class="command-block" id="config-{{ loop.index0 }}">
+        {% for cmd in router.config %}
+          {% if cmd.startswith('!') %}
+            <div class="command comment">{{ cmd }}</div>
+          {% else %}
+            <div class="command">{{ cmd }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="actions">
+      <button onclick="copyAllConfigs()">📋 Copiar Todas las Configuraciones</button>
+      <button onclick="window.location.href='/download'">� Descargar Reporte TXT</button>
+      <button onclick="window.print()">🖨️ Imprimir</button>
+      <button onclick="window.location.href='/'">← Nueva Configuración</button>
+    </div>
+  </div>
+</body>
+</html>
