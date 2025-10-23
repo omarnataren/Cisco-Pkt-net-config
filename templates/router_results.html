@@ -123,112 +123,55 @@
       margin-top: 0;
       font-size: 16px;
     }
-    .route-item {
-      background: #1e1e1e;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 4px;
-      border-left: 3px solid #dcdcaa;
-    }
-    .route-item label {
-      color: #9cdcfe;
-      display: block;
-      margin-bottom: 5px;
-      font-size: 12px;
-    }
-    .route-item input, .route-item select {
+    .vlan-info-section {
       background: #2d2d2d;
-      border: 1px solid #3e3e3e;
-      color: #d4d4d4;
-      padding: 6px 10px;
-      border-radius: 3px;
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      width: 180px;
-      margin-right: 10px;
+      padding: 25px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      border-left: 5px solid #dcdcaa;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
-    .route-item .route-info {
-      color: #6a9955;
-      font-size: 11px;
-      margin-top: 5px;
+    .vlan-info-section h2 {
+      color: #dcdcaa;
+      margin-top: 0;
+      font-size: 24px;
+      border-bottom: 2px solid #dcdcaa;
+      padding-bottom: 10px;
     }
-    .route-warning {
-      background: #5a3e1b;
-      color: #f0ad4e;
-      padding: 8px 12px;
-      border-radius: 4px;
-      margin-top: 8px;
-      font-size: 12px;
-      border-left: 3px solid #f0ad4e;
+    .vlan-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 13px;
     }
-    .regenerate-btn {
+    .vlan-table th {
+      background: #1e1e1e;
+      color: #dcdcaa;
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid #dcdcaa;
+    }
+    .vlan-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #3e3e3e;
+    }
+    .vlan-table tr:hover {
+      background: #3e3e3e;
+    }
+    .device-badge {
       background: #4ec9b0;
-      padding: 8px 16px;
-      font-size: 12px;
-      margin-top: 10px;
+      color: #1e1e1e;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      display: inline-block;
     }
-    .regenerate-btn:hover {
-      background: #6dd9bf;
+    .switch-badge {
+      background: #dcdcaa;
     }
   </style>
   <script>
-    // Función para regenerar la configuración con rutas editadas
-    function regenerateConfig(routerIndex) {
-      const configBlock = document.getElementById(`config-${routerIndex}`);
-      const routeItems = document.querySelectorAll(`#routes-${routerIndex} .route-item`);
-      
-      // Obtener configuración base (todo antes de rutas estáticas)
-      let lines = configBlock.innerText.split('\n');
-      let baseConfig = [];
-      let inRoutes = false;
-      
-      for (let line of lines) {
-        if (line.includes('=== Rutas Estáticas ===')) {
-          inRoutes = true;
-          break;
-        }
-        if (!inRoutes) {
-          baseConfig.push(line);
-        }
-      }
-      
-      // Agregar rutas editadas
-      let routeLines = ['! === Rutas Estáticas ==='];
-      routeItems.forEach(item => {
-        const network = item.querySelector('.route-network').value;
-        const netmask = item.querySelector('.route-netmask').value;
-        const nextHop = item.querySelector('.route-nexthop').value;
-        const comment = item.querySelector('.route-comment').textContent;
-        
-        routeLines.push(comment);
-        routeLines.push(`ip route ${network} ${netmask} ${nextHop}`);
-      });
-      
-      // Agregar "end" al final si no está
-      if (!baseConfig[baseConfig.length - 1].includes('end')) {
-        routeLines.push('');
-        routeLines.push('end');
-        routeLines.push('');
-      } else {
-        // Insertar antes del "end"
-        const endLine = baseConfig.pop();
-        const emptyLine = baseConfig.pop();
-        baseConfig = baseConfig.concat(routeLines);
-        baseConfig.push(emptyLine);
-        baseConfig.push(endLine);
-      }
-      
-      // Actualizar el bloque de configuración
-      configBlock.innerHTML = '';
-      (baseConfig.length > 0 ? baseConfig : baseConfig.concat(routeLines)).forEach(line => {
-        const div = document.createElement('div');
-        div.className = line.startsWith('!') ? 'command comment' : 'command';
-        div.textContent = line;
-        configBlock.appendChild(div);
-      });
-      
-      alert('✓ Configuración regenerada con las rutas editadas');
-    }
     function copyConfig(routerIndex) {
       const configBlock = document.getElementById(`config-${routerIndex}`);
       const text = configBlock.innerText;
@@ -270,51 +213,10 @@
       <div style="clear: both;"></div>
       
       {% if router.routes %}
-      <div class="routes-section" id="routes-{{ loop.index0 }}">
+      <div class="routes-section">
         <h3>🔀 Rutas Estáticas Generadas ({{ router.routes|length }} rutas)</h3>
         <p style="color: #888; font-size: 12px; margin: 5px 0 10px 0;">
-          Estas rutas fueron generadas automáticamente. Puedes editarlas si es necesario.
-        </p>
-        
-        {% for route in router.routes %}
-        <div class="route-item">
-          <div style="display: flex; align-items: center; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 200px;">
-              <label>Red de Destino:</label>
-              <input type="text" class="route-network" value="{{ route.network.network_address }}" readonly style="background: #1a1a1a;">
-            </div>
-            <div style="flex: 1; min-width: 180px;">
-              <label>Máscara:</label>
-              <input type="text" class="route-netmask" value="{{ route.network.netmask }}" readonly style="background: #1a1a1a;">
-            </div>
-            <div style="flex: 1; min-width: 180px;">
-              <label>Next-Hop (editable):</label>
-              <input type="text" class="route-nexthop" value="{{ route.next_hop }}" 
-                     title="Edita esta IP si deseas cambiar el next-hop">
-            </div>
-          </div>
-          <div class="route-info">
-            <span class="route-comment">! Ruta a {{ route.destination_router }}{% if route.via_router %} vía {{ route.via_router }}{% endif %}</span>
-            <br>
-            📍 Salida por interfaz: <strong>{{ route.next_hop_interface }}</strong>
-          </div>
-          {% if route.via_router %}
-          <div class="route-warning">
-            ⚠️ Ruta indirecta: Esta ruta pasa por el router intermedio "{{ route.via_router }}". 
-            Verifica que la topología sea correcta.
-          </div>
-          {% endif %}
-        </div>
-        {% endfor %}
-        
-        <button class="regenerate-btn" onclick="regenerateConfig({{ loop.index0 }})">
-          🔄 Aplicar Cambios a la Configuración
-        </button>
-      </div>
-      {% else %}
-      <div class="routes-section">
-        <p style="color: #888; font-size: 12px; margin: 0;">
-          ℹ️ No se generaron rutas para este router (todas las redes están directamente conectadas).
+          Las rutas fueron generadas automáticamente respetando las direcciones de ruteo configuradas.
         </p>
       </div>
       {% endif %}
@@ -331,9 +233,53 @@
     </div>
     {% endfor %}
 
+    <!-- Información de VLANs y Segmentos -->
+    <div class="vlan-info-section">
+      <h2>📊 Información de VLANs y Segmentos de Red</h2>
+      <table class="vlan-table">
+        <thead>
+          <tr>
+            <th>Dispositivo</th>
+            <th>VLAN</th>
+            <th>Tag</th>
+            <th>Red/Segmento</th>
+            <th>Máscara</th>
+            <th>Gateway</th>
+            <th>Rango Usable</th>
+            <th>Total IPs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for router in routers %}
+            {% if router.vlans %}
+              {% for vlan in router.vlans %}
+                <tr>
+                  <td>
+                    <span class="device-badge {% if router.type == 'switch_core' %}switch-badge{% endif %}">
+                      {{ router.name }}
+                    </span>
+                  </td>
+                  <td><strong>{{ vlan.name }}</strong></td>
+                  <td>{{ vlan.termination }}</td>
+                  <td><code>{{ vlan.network }}</code></td>
+                  <td><code>{{ vlan.mask }}</code></td>
+                  <td><code>{{ vlan.gateway }}</code></td>
+                  <td><code>{{ vlan.first_ip }} - {{ vlan.last_ip }}</code></td>
+                  <td>{{ vlan.num_hosts }} hosts</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
     <div class="actions">
       <button onclick="copyAllConfigs()">📋 Copiar Todas las Configuraciones</button>
-      <button onclick="window.location.href='/download'">� Descargar Reporte TXT</button>
+      <button onclick="window.location.href='/download/completo'">📥 Descargar TODO</button>
+      <button onclick="window.location.href='/download/routers'">🔀 Descargar Routers</button>
+      <button onclick="window.location.href='/download/switch_cores'">🔄 Descargar Switch Cores</button>
+      <button onclick="window.location.href='/download/switches'">🔌 Descargar Switches</button>
       <button onclick="window.print()">🖨️ Imprimir</button>
       <button onclick="window.location.href='/'">← Nueva Configuración</button>
     </div>

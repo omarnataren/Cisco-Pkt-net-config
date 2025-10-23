@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+
+# Reportes temporales generados
+reporte.txt
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Backups y archivos temporales
+*_backup.*
+*_old.*
+*.bak
+*.tmp
+
+# Environments
+venv/
+env/
+ENV/
+
+# OS files
+.DS_Store
+Thumbs.db
