@@ -524,17 +524,68 @@ def generate_routing_table(all_routers: list) -> dict:
 
 def generate_switch_core_config(switch_name: str, vlans: list, backbone_interfaces: list = None, trunk_interface_type: str = "fa", trunk_interface_number: str = "0/3") -> list[str]:
     """
-    Genera comandos CLI para un Switch Core con IP routing.
+    Genera comandos CLI para un Switch Core (Capa 3) con IP routing
+    
+    Características del Switch Core:
+        - Soporte de enrutamiento entre VLANs (ip routing)
+        - Interfaces SVI (Switch Virtual Interface) para cada VLAN
+        - Interfaces físicas de backbone hacia routers
+        - Configuración trunk para conectar switches Capa 2
     
     Args:
-        switch_name: Nombre del switch
-        vlans: Lista de VLANs con 'name', 'termination' y 'network'
-        backbone_interfaces: Lista de interfaces backbone (uplink a routers)
-        trunk_interface_type: Tipo de interfaz trunk
-        trunk_interface_number: Número de interfaz trunk
+        switch_name (str): Nombre del switch core (ej: "SC1")
+        vlans (list): Lista de VLANs terminadas en este switch
+            [
+                {
+                    'name': 'VLAN10',
+                    'termination': 'SC1',
+                    'network': IPv4Network('192.168.10.0/24')
+                }
+            ]
+        backbone_interfaces (list, optional): Interfaces de uplink a routers
+            [
+                {
+                    'full_name': 'Gi0/1',
+                    'ip': '19.0.0.5',
+                    'netmask': '255.255.255.252',
+                    'network': IPv4Network('19.0.0.4/30')
+                }
+            ]
+        trunk_interface_type (str): Tipo de interfaz trunk (default: "fa")
+        trunk_interface_number (str): Número de interfaz trunk (default: "0/3")
     
     Returns:
-        Lista de comandos CLI
+        list[str]: Lista de comandos IOS para configurar el switch core
+    
+    Ejemplo de salida:
+        [
+            'enable',
+            'conf t',
+            'ip routing',
+            '!',
+            'vlan 10',
+            ' name VLAN10',
+            '!',
+            'interface vlan 10',
+            ' ip address 192.168.10.254 255.255.255.0',
+            ' no shutdown',
+            '!',
+            'interface Gi0/1',
+            ' no switchport',
+            ' ip address 19.0.0.5 255.255.255.252',
+            ' no shutdown',
+            '!',
+            'interface fa0/3',
+            ' switchport mode trunk',
+            '!',
+            'end'
+        ]
+    
+    Diferencia con Router:
+        - Switch Core usa 'interface vlan X' (SVI) en lugar de interfaces físicas para VLANs
+        - Requiere 'no switchport' en interfaces físicas con IP
+        - Tiene interfaz trunk para switches downstream
+        - Comando 'ip routing' para habilitar enrutamiento entre VLANs
     """
     commands = []
     
@@ -601,18 +652,59 @@ def generate_switch_core_config(switch_name: str, vlans: list, backbone_interfac
 
 def generate_etherchannel_config(etherchannel_data: dict, is_from: bool) -> list[str]:
     """
-    Genera comandos CLI para configuración de EtherChannel.
+    Genera comandos CLI para configuración de EtherChannel (agregación de enlaces)
+    
+    EtherChannel permite combinar múltiples enlaces físicos en un enlace lógico único,
+    proporcionando mayor ancho de banda y redundancia.
+    
+    Protocolos soportados:
+        - LACP (Link Aggregation Control Protocol): IEEE 802.3ad
+          * active: Inicia negociación activamente
+          * passive: Espera recibir paquetes LACP
+          * Recomendado por ser estándar abierto
+        
+        - PAgP (Port Aggregation Protocol): Propietario de Cisco
+          * desirable: Inicia negociación activamente
+          * auto: Espera recibir paquetes PAgP
     
     Args:
-        etherchannel_data: Diccionario con datos del EtherChannel:
-            - protocol: 'lacp' o 'pagp'
-            - group: Número de channel-group (1-6)
-            - fromType/toType: Tipo de interfaz (fa/gi)
-            - fromRange/toRange: Rango (ej: 0/1-3)
-        is_from: True si este switch es el origen, False si es destino
+        etherchannel_data (dict): Configuración del EtherChannel
+            {
+                'protocol': 'lacp' | 'pagp',
+                'group': 1-6,  # Número de channel-group
+                'fromType': 'fa' | 'gi',  # Tipo de interfaz origen
+                'toType': 'fa' | 'gi',    # Tipo de interfaz destino
+                'fromRange': '0/1-3',     # Rango origen (ej: fa0/1, fa0/2, fa0/3)
+                'toRange': '0/1-3'        # Rango destino
+            }
+        is_from (bool): True si este switch es el origen, False si es destino
     
     Returns:
-        Lista de comandos CLI
+        list[str]: Lista de comandos IOS para configurar EtherChannel
+    
+    Ejemplo de salida (LACP, origen):
+        [
+            'interface range fa0/1-3',
+            'switchport mode trunk',
+            'channel-group 1 mode active',
+            'exit',
+            ''
+        ]
+    
+    Ejemplo de salida (LACP, destino):
+        [
+            'interface range fa0/1-3',
+            'switchport mode trunk',
+            'channel-group 1 mode passive',
+            'exit',
+            ''
+        ]
+    
+    Lógica de modos:
+        Origen (is_from=True):  LACP→active  | PAgP→desirable
+        Destino (is_from=False): LACP→passive | PAgP→auto
+    
+    Nota: El channel-group debe coincidir en ambos extremos del enlace
     """
     commands = []
     
@@ -644,13 +736,44 @@ def generate_etherchannel_config(etherchannel_data: dict, is_from: bool) -> list
 
 def generate_static_routes_commands(routes: list) -> list[str]:
     """
-    Genera comandos CLI para rutas estáticas (SIN comentarios, formato limpio).
+    Genera comandos CLI para rutas estáticas en formato limpio (sin comentarios)
+    
+    Formatea las rutas calculadas por generate_routing_table() en comandos IOS válidos.
+    Cada ruta especifica la red destino, máscara y next-hop (gateway).
     
     Args:
-        routes: Lista de rutas con formato de generate_routing_table
+        routes (list): Lista de tuplas con información de rutas
+            [
+                (
+                    '192.168.20.0',          # Red destino
+                    '255.255.255.0',         # Máscara
+                    '19.0.0.2',              # Next-hop IP
+                    'Gi0/0',                 # Interfaz salida
+                    'R2',                    # Router vecino
+                    'via R2',                # Descripción
+                    'VLAN',                  # Tipo de red
+                    'VLAN20'                 # Nombre de VLAN
+                )
+            ]
     
     Returns:
-        Lista de comandos CLI (solo comandos ip route)
+        list[str]: Lista de comandos 'ip route' en sintaxis Cisco IOS
+    
+    Ejemplo:
+        Input:
+            [
+                ('192.168.20.0', '255.255.255.0', '19.0.0.2', 'Gi0/0', 'R2', 'via R2', 'VLAN', 'VLAN20'),
+                ('192.168.30.0', '255.255.255.0', '19.0.0.2', 'Gi0/0', 'R2', 'via R2', 'VLAN', 'VLAN30')
+            ]
+        
+        Output:
+            [
+                'ip route 192.168.20.0 255.255.255.0 19.0.0.2',
+                'ip route 192.168.30.0 255.255.255.0 19.0.0.2'
+            ]
+    
+    Nota: Esta función NO añade comentarios descriptivos. Para versiones con
+          comentarios, usar directamente la salida de generate_routing_table()
     """
     commands = []
     
