@@ -1,0 +1,47 @@
+addDevice("R1", "2811", 100, 100);
+addDevice("R2", "2811", 300, 100);
+addDevice("R3", "2811", 500, 100);
+addDevice("SW1", "2960-24TT", 100, 300);
+addDevice("SW2", "2960-24TT", 300, 300);
+addDevice("SW3", "2960-24TT", 500, 300);
+addDevice("Core1", "3650-24PS", 300, 200);
+addDevice("PC1", "PC-PT", 50, 400);
+addDevice("PC2", "PC-PT", 150, 400);
+addDevice("PC3", "PC-PT", 250, 400);
+addDevice("PC4", "PC-PT", 350, 400);
+addDevice("PC5", "PC-PT", 450, 400);
+addDevice("PC6", "PC-PT", 550, 400);
+
+addModule("R1", "0/0", "WIC-1ENET");
+addModule("R1", "0/1", "WIC-1ENET");
+addModule("R1", "0/2", "WIC-1ENET");
+addModule("R2", "0/0", "WIC-1ENET");
+addModule("R2", "0/1", "WIC-1ENET");
+addModule("R2", "0/2", "WIC-1ENET");
+addModule("R3", "0/0", "WIC-1ENET");
+addModule("R3", "0/1", "WIC-1ENET");
+addModule("R3", "0/2", "WIC-1ENET");
+
+addLink("R1", "FastEthernet0/0", "Core1", "GigabitEthernet1/0/1", "straight");
+addLink("R2", "FastEthernet0/0", "Core1", "GigabitEthernet1/0/2", "straight");
+addLink("R3", "FastEthernet0/0", "Core1", "GigabitEthernet1/0/3", "straight");
+addLink("Core1", "GigabitEthernet1/0/4", "SW1", "FastEthernet0/1", "straight");
+addLink("Core1", "GigabitEthernet1/0/5", "SW2", "FastEthernet0/1", "straight");
+addLink("Core1", "GigabitEthernet1/0/6", "SW3", "FastEthernet0/1", "straight");
+addLink("SW1", "FastEthernet0/2", "PC1", "FastEthernet0", "straight");
+addLink("SW1", "FastEthernet0/3", "PC2", "FastEthernet0", "straight");
+addLink("SW2", "FastEthernet0/2", "PC3", "FastEthernet0", "straight");
+addLink("SW2", "FastEthernet0/3", "PC4", "FastEthernet0", "straight");
+addLink("SW3", "FastEthernet0/2", "PC5", "FastEthernet0", "straight");
+addLink("SW3", "FastEthernet0/3", "PC6", "FastEthernet0", "straight");
+
+configureIosDevice("R1", "hostname R1\n...");
+configureIosDevice("R2", "hostname R2\n...");
+configureIosDevice("R3", "hostname R3\n...");
+
+configurePcIp("PC1", true);
+configurePcIp("PC2", true);
+configurePcIp("PC3", true);
+configurePcIp("PC4", true);
+configurePcIp("PC5", true);
+configurePcIp("PC6", true);

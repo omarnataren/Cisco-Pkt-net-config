@@ -1,0 +1,293 @@
+================================================================================
+CONFIGURACIÓN COMPLETA DE LA TOPOLOGÍA
+================================================================================
+
+
+================================================================================
+ROUTERS
+================================================================================
+
+--- R1 ---
+R1
+enable
+conf t
+Hostname R1
+Enable secret cisco
+int fa0/0
+ip add 19.0.0.6 255.255.255.252
+no shut
+int fa0/0
+ip add 19.0.0.14 255.255.255.252
+no shut
+int fa0/0
+no shut
+int fa0/0.1
+encapsulation dot1Q 1
+ip add 19.0.1.254 255.255.255.0
+no shut
+int fa0/0.2
+encapsulation dot1Q 2
+ip add 19.0.31.254 255.255.240.0
+no shut
+exit
+
+ip dhcp pool vlan1
+network 19.0.1.0 255.255.255.0
+default-router 19.0.1.254
+
+ip dhcp pool vlan2
+network 19.0.16.0 255.255.240.0
+default-router 19.0.31.254
+
+exit
+
+
+ip route 19.0.0.16 255.255.255.252 19.0.0.5
+ip route 19.0.0.8 255.255.255.252 19.0.0.5
+ip route 19.0.3.0 255.255.255.0 19.0.0.5
+ip route 19.0.48.0 255.255.240.0 19.0.0.5
+ip route 19.0.0.20 255.255.255.252 19.0.0.13
+ip route 19.0.0.24 255.255.255.252 19.0.0.13
+ip route 19.0.2.0 255.255.255.0 19.0.0.13
+ip route 19.0.32.0 255.255.240.0 19.0.0.13
+
+
+--- R2 ---
+R2
+enable
+conf t
+Hostname R2
+Enable secret cisco
+int fa0/0
+ip add 19.0.0.5 255.255.255.252
+no shut
+int fa0/0
+ip add 19.0.0.10 255.255.255.252
+no shut
+int fa0/0
+ip add 19.0.0.18 255.255.255.252
+no shut
+exit
+
+
+ip route 19.0.0.12 255.255.255.252 19.0.0.6
+ip route 19.0.1.0 255.255.255.0 19.0.0.6
+ip route 19.0.16.0 255.255.240.0 19.0.0.6
+ip route 19.0.0.20 255.255.255.252 19.0.0.17
+ip route 19.0.0.24 255.255.255.252 19.0.0.17
+ip route 19.0.2.0 255.255.255.0 19.0.0.17
+ip route 19.0.32.0 255.255.240.0 19.0.0.17
+ip route 19.0.3.0 255.255.255.0 19.0.0.9
+ip route 19.0.48.0 255.255.240.0 19.0.0.9
+
+
+--- R3 ---
+R3
+enable
+conf t
+Hostname R3
+Enable secret cisco
+int fa0/0
+ip add 19.0.0.13 255.255.255.252
+no shut
+int fa0/0
+ip add 19.0.0.17 255.255.255.252
+no shut
+int fa0/0
+ip add 19.0.0.22 255.255.255.252
+no shut
+int fa0/0
+no shut
+int fa0/0.1
+encapsulation dot1Q 1
+ip add 19.0.2.254 255.255.255.0
+no shut
+int fa0/0.2
+encapsulation dot1Q 2
+ip add 19.0.47.254 255.255.240.0
+no shut
+exit
+
+ip dhcp pool vlan1
+network 19.0.2.0 255.255.255.0
+default-router 19.0.2.254
+
+ip dhcp pool vlan2
+network 19.0.32.0 255.255.240.0
+default-router 19.0.47.254
+
+exit
+
+
+ip route 19.0.0.24 255.255.255.252 19.0.0.21
+ip route 19.0.0.4 255.255.255.252 19.0.0.14
+ip route 19.0.1.0 255.255.255.0 19.0.0.14
+ip route 19.0.16.0 255.255.240.0 19.0.0.14
+ip route 19.0.0.8 255.255.255.252 19.0.0.18
+ip route 19.0.3.0 255.255.255.0 19.0.0.18
+ip route 19.0.48.0 255.255.240.0 19.0.0.18
+
+
+--- R4 ---
+R4
+enable
+conf t
+Hostname R4
+Enable secret cisco
+int fa0/0
+ip add 19.0.0.21 255.255.255.252
+no shut
+int fa0/0
+ip add 19.0.0.25 255.255.255.252
+no shut
+exit
+
+
+ip route 19.0.0.12 255.255.255.252 19.0.0.22
+ip route 19.0.0.16 255.255.255.252 19.0.0.22
+ip route 19.0.0.4 255.255.255.252 19.0.0.22
+ip route 19.0.0.8 255.255.255.252 19.0.0.22
+ip route 19.0.1.0 255.255.255.0 19.0.0.22
+ip route 19.0.16.0 255.255.240.0 19.0.0.22
+ip route 19.0.2.0 255.255.255.0 19.0.0.22
+ip route 19.0.3.0 255.255.255.0 19.0.0.22
+ip route 19.0.32.0 255.255.240.0 19.0.0.22
+ip route 19.0.48.0 255.255.240.0 19.0.0.22
+
+
+
+================================================================================
+SWITCH CORES
+================================================================================
+
+--- SWC1 ---
+SWC1
+enable
+conf t
+hostname SWC1
+enable secret cisco
+ip routing
+
+vlan 1
+ name v1
+vlan 2
+ name v2
+exit
+
+interface fa0/0
+ no switchport
+ ip address 19.0.0.9 255.255.255.252
+ no shutdown
+
+interface vlan 1
+ ip address 19.0.3.254 255.255.255.0
+ no shutdown
+
+interface vlan 2
+ ip address 19.0.63.254 255.255.240.0
+ no shutdown
+
+ip dhcp excluded-address 19.0.3.1 19.0.3.10
+
+ip dhcp pool VLAN1
+ network 19.0.3.0 255.255.255.0
+ default-router 19.0.3.254
+ dns-server 8.8.8.8
+
+ip dhcp excluded-address 19.0.48.1 19.0.48.10
+
+ip dhcp pool VLAN2
+ network 19.0.48.0 255.255.240.0
+ default-router 19.0.63.254
+ dns-server 8.8.8.8
+
+exit
+
+ip route 19.0.0.12 255.255.255.252 19.0.0.10
+ip route 19.0.0.16 255.255.255.252 19.0.0.10
+ip route 19.0.0.20 255.255.255.252 19.0.0.10
+ip route 19.0.0.24 255.255.255.252 19.0.0.10
+ip route 19.0.0.4 255.255.255.252 19.0.0.10
+ip route 19.0.1.0 255.255.255.0 19.0.0.10
+ip route 19.0.16.0 255.255.240.0 19.0.0.10
+ip route 19.0.2.0 255.255.255.0 19.0.0.10
+ip route 19.0.32.0 255.255.240.0 19.0.0.10
+
+
+--- SWC2 ---
+SWC2
+enable
+conf t
+hostname SWC2
+enable secret cisco
+ip routing
+
+exit
+
+interface fa0/0
+ no switchport
+ ip address 19.0.0.26 255.255.255.252
+ no shutdown
+
+exit
+
+ip route 19.0.0.12 255.255.255.252 19.0.0.25
+ip route 19.0.0.16 255.255.255.252 19.0.0.25
+ip route 19.0.0.20 255.255.255.252 19.0.0.25
+ip route 19.0.0.4 255.255.255.252 19.0.0.25
+ip route 19.0.0.8 255.255.255.252 19.0.0.25
+ip route 19.0.1.0 255.255.255.0 19.0.0.25
+ip route 19.0.16.0 255.255.240.0 19.0.0.25
+ip route 19.0.2.0 255.255.255.0 19.0.0.25
+ip route 19.0.3.0 255.255.255.0 19.0.0.25
+ip route 19.0.32.0 255.255.240.0 19.0.0.25
+ip route 19.0.48.0 255.255.240.0 19.0.0.25
+
+
+
+================================================================================
+SWITCHES
+================================================================================
+
+--- SW1 ---
+SW1
+enable
+conf t
+Hostname SW1
+Enable secret cisco
+
+vlan 1
+ name v1
+vlan 2
+ name v2
+exit
+
+int fa0/0
+switchport mode trunk
+int fa0/0
+switchport access vlan 2
+int fa0/0
+switchport access vlan 1
+
+
+--- SW2 ---
+SW2
+enable
+conf t
+Hostname SW2
+Enable secret cisco
+
+vlan 1
+ name v1
+vlan 2
+ name v2
+exit
+
+int fa0/0
+switchport mode trunk
+int fa0/0
+switchport access vlan 1
+int fa0/0
+switchport access vlan 2
+
+
