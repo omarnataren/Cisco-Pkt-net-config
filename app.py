@@ -53,6 +53,157 @@ def index():
     
     return render_template("index_visual.html")
 
+def get_available_interfaces_for_device(device_type):
+    """Retorna las interfaces disponibles para cada tipo de dispositivo"""
+    interfaces = {
+        'router': [
+            'FastEthernet0/0',
+            'FastEthernet0/1',
+            'Ethernet0/0/0',
+            'Ethernet0/1/0',
+            'Ethernet0/2/0'
+        ],
+        'switch_core': [
+            'GigabitEthernet1/0/1', 'GigabitEthernet1/0/2', 'GigabitEthernet1/0/3', 'GigabitEthernet1/0/4',
+            'GigabitEthernet1/0/5', 'GigabitEthernet1/0/6', 'GigabitEthernet1/0/7', 'GigabitEthernet1/0/8',
+            'GigabitEthernet1/0/9', 'GigabitEthernet1/0/10', 'GigabitEthernet1/0/11', 'GigabitEthernet1/0/12',
+            'GigabitEthernet1/0/13', 'GigabitEthernet1/0/14', 'GigabitEthernet1/0/15', 'GigabitEthernet1/0/16',
+            'GigabitEthernet1/0/17', 'GigabitEthernet1/0/18', 'GigabitEthernet1/0/19', 'GigabitEthernet1/0/20',
+            'GigabitEthernet1/0/21', 'GigabitEthernet1/0/22', 'GigabitEthernet1/0/23', 'GigabitEthernet1/0/24',
+            'GigabitEthernet1/1/1', 'GigabitEthernet1/1/2', 'GigabitEthernet1/1/3', 'GigabitEthernet1/1/4'
+        ],
+        'switch': [
+            'FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4',
+            'FastEthernet0/5', 'FastEthernet0/6', 'FastEthernet0/7', 'FastEthernet0/8',
+            'FastEthernet0/9', 'FastEthernet0/10', 'FastEthernet0/11', 'FastEthernet0/12',
+            'FastEthernet0/13', 'FastEthernet0/14', 'FastEthernet0/15', 'FastEthernet0/16',
+            'FastEthernet0/17', 'FastEthernet0/18', 'FastEthernet0/19', 'FastEthernet0/20',
+            'FastEthernet0/21', 'FastEthernet0/22', 'FastEthernet0/23', 'FastEthernet0/24',
+            'GigabitEthernet0/1', 'GigabitEthernet0/2'
+        ],
+        'computer': ['FastEthernet0']
+    }
+    return interfaces.get(device_type, [])
+
+def generate_ptbuilder_script(topology, router_configs, computers):
+    """Genera script PTBuilder para crear topología en Packet Tracer"""
+    lines = []
+    device_models = {
+        'router': '2811',
+        'switch': '2960-24TT',
+        'switch_core': '3650-24PS',
+        'computer': 'PC-PT'
+    }
+    
+    nodes = topology['nodes']
+    edges = topology['edges']
+    node_map = {n['id']: n for n in nodes}
+    config_map = {cfg['name']: cfg for cfg in router_configs}
+    
+    def normalize_interface(iface_str):
+        """Normaliza nombres de interfaces"""
+        if not iface_str:
+            return None
+        if '.' in iface_str:
+            iface_str = iface_str.split('.')[0]
+        iface_lower = iface_str.lower().strip()
+        if 'interface ' in iface_lower:
+            iface_str = iface_str.replace('interface ', '').replace('Interface ', '')
+            iface_lower = iface_lower.replace('interface ', '')
+        if iface_lower.startswith('fa'):
+            return 'FastEthernet' + iface_str[2:]
+        elif iface_lower.startswith('gi'):
+            return 'GigabitEthernet' + iface_str[2:]
+        elif iface_lower.startswith('eth') or iface_lower.startswith('e'):
+            if iface_lower.startswith('eth'):
+                return 'Ethernet' + iface_str[3:]
+            else:
+                return 'Ethernet' + iface_str[1:]
+        elif iface_lower.startswith('vlan'):
+            return None
+        return iface_str
+    
+    def extract_interfaces_from_config(device_name):
+        """Extrae interfaces usadas de la configuración"""
+        used = set()
+        config = config_map.get(device_name)
+        if not config:
+            return used
+        for line in config['config']:
+            line_lower = line.lower().strip()
+            if line_lower.startswith('int ') or line_lower.startswith('interface '):
+                parts = line.split()
+                if len(parts) >= 2:
+                    iface_normalized = normalize_interface(parts[1])
+                    if iface_normalized:
+                        used.add(iface_normalized)
+        return used
+    
+    used_interfaces = {}
+    for node in nodes:
+        device_name = node['data']['name']
+        used_interfaces[device_name] = extract_interfaces_from_config(device_name)
+    
+    def get_next_available_interface(device_name, device_type):
+        """Obtiene siguiente interfaz disponible"""
+        available = get_available_interfaces_for_device(device_type)
+        for iface in available:
+            if iface not in used_interfaces[device_name]:
+                used_interfaces[device_name].add(iface)
+                return iface
+        return None
+    
+    for node in nodes:
+        device_name = node['data']['name']
+        device_type = node['data']['type']
+        model = device_models.get(device_type, 'PC-PT')
+        x = node.get('x', 100)
+        y = node.get('y', 100)
+        lines.append(f'addDevice("{device_name}", "{model}", {x}, {y});')
+    
+    lines.append("")
+    
+    for node in nodes:
+        if node['data']['type'] == 'router':
+            device_name = node['data']['name']
+            lines.append(f'addModule("{device_name}", "0/0", "WIC-1ENET");')
+            lines.append(f'addModule("{device_name}", "0/1", "WIC-1ENET");')
+            lines.append(f'addModule("{device_name}", "0/2", "WIC-1ENET");')
+    
+    lines.append("")
+    
+    for edge in edges:
+        from_node = node_map.get(edge['from'])
+        to_node = node_map.get(edge['to'])
+        if not from_node or not to_node:
+            continue
+        from_name = from_node['data']['name']
+        to_name = to_node['data']['name']
+        from_type = from_node['data']['type']
+        to_type = to_node['data']['type']
+        from_iface = get_next_available_interface(from_name, from_type)
+        to_iface = get_next_available_interface(to_name, to_type)
+        if from_iface and to_iface:
+            lines.append(f'addLink("{from_name}", "{from_iface}", "{to_name}", "{to_iface}", "straight");')
+    
+    lines.append("")
+    
+    for router_config in router_configs:
+        device_name = router_config['name']
+        config_lines = router_config['config']
+        config_text = "\\n".join([line for line in config_lines if line.strip()])
+        config_text = config_text.replace('"', '\\"')
+        lines.append(f'configureIosDevice("{device_name}", "{config_text}");')
+    
+    lines.append("")
+    
+    for computer in computers:
+        pc_name = computer['data']['name']
+        lines.append(f'configurePcIp("{pc_name}", true);')
+    
+    with open("topology_ptbuilder.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
 def generate_separated_txt_files(router_configs):
     """
     Genera 4 archivos TXT separados con las configuraciones de dispositivos
@@ -813,6 +964,9 @@ def handle_visual_topology(topology):
         # Generar archivos TXT separados por tipo
         generate_separated_txt_files(router_configs)
         
+        # Generar script PTBuilder
+        generate_ptbuilder_script(topology, router_configs, computers)
+        
         return render_template("router_results.html", 
                              routers=router_configs,
                              vlan_summary=vlan_summary)
@@ -880,7 +1034,8 @@ def download_by_type(device_type):
         'routers': 'config_routers.txt',
         'switch_cores': 'config_switch_cores.txt',
         'switches': 'config_switches.txt',
-        'completo': 'config_completo.txt'
+        'completo': 'config_completo.txt',
+        'ptbuilder': 'topology_ptbuilder.txt'
     }
     
     if device_type in files:
