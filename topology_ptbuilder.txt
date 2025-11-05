@@ -1,5 +1,8 @@
-addDevice("R1", "2811", -311, -199);
-addDevice("R2", "2811", -261, -158);
+addDevice("R1", "2811", -163, -134);
+addDevice("R2", "2811", -157, -101);
+addDevice("R3", "2811", -129, -121);
+addDevice("R4", "2811", -102, -132);
+addDevice("R5", "2811", -80, -139);
 
 addModule("R1", "0/0", "WIC-1ENET");
 addModule("R1", "0/1", "WIC-1ENET");
@@ -7,7 +10,19 @@ addModule("R1", "0/2", "WIC-1ENET");
 addModule("R2", "0/0", "WIC-1ENET");
 addModule("R2", "0/1", "WIC-1ENET");
 addModule("R2", "0/2", "WIC-1ENET");
+addModule("R3", "0/0", "WIC-1ENET");
+addModule("R3", "0/1", "WIC-1ENET");
+addModule("R3", "0/2", "WIC-1ENET");
+addModule("R4", "0/0", "WIC-1ENET");
+addModule("R4", "0/1", "WIC-1ENET");
+addModule("R4", "0/2", "WIC-1ENET");
+addModule("R5", "0/0", "WIC-1ENET");
+addModule("R5", "0/1", "WIC-1ENET");
+addModule("R5", "0/2", "WIC-1ENET");
 
 
 configureIosDevice("R1", "R1\nenable\nconf t\nHostname R1\nEnable secret cisco\nexit");
 configureIosDevice("R2", "R2\nenable\nconf t\nHostname R2\nEnable secret cisco\nexit");
+configureIosDevice("R3", "R3\nenable\nconf t\nHostname R3\nEnable secret cisco\nexit");
+configureIosDevice("R4", "R4\nenable\nconf t\nHostname R4\nEnable secret cisco\nexit");
+configureIosDevice("R5", "R5\nenable\nconf t\nHostname R5\nEnable secret cisco\nexit");
