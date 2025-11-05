@@ -91,7 +91,14 @@ def get_available_interfaces_for_device(device_type):
     return interfaces.get(device_type, [])
 
 def generate_ptbuilder_script(topology, router_configs, computers):
-    """Genera script PTBuilder para crear topología en Packet Tracer"""
+    """
+    Genera script PTBuilder para crear topología en Packet Tracer
+    
+    Las coordenadas (x, y) de cada dispositivo se preservan exactamente
+    como fueron posicionadas por el usuario en la interfaz visual.
+    PTBuilder usará estas coordenadas para crear los dispositivos en 
+    las mismas posiciones dentro de Packet Tracer.
+    """
     lines = []
     device_models = {
         'router': '2811',
@@ -162,8 +169,10 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         device_name = node['data']['name']
         device_type = node['data']['type']
         model = device_models.get(device_type, 'PC-PT')
-        x = node.get('x', 100)
-        y = node.get('y', 100)
+        # Usar coordenadas exactas posicionadas en la interfaz
+        # Si no existen coordenadas, usar valores por defecto
+        x = int(node.get('x', 100)) if node.get('x') is not None else 100
+        y = int(node.get('y', 100)) if node.get('y') is not None else 100
         lines.append(f'addDevice("{device_name}", "{model}", {x}, {y});')
     
     lines.append("")
@@ -206,8 +215,14 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         pc_name = computer['data']['name']
         lines.append(f'configurePcIp("{pc_name}", true);')
     
+    # Retornar contenido en lugar de escribir a disco
+    ptbuilder_content = "\n".join(lines)
+    
+    # También guardar en archivo para compatibilidad con herramientas existentes
     with open("topology_ptbuilder.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+        f.write(ptbuilder_content)
+    
+    return ptbuilder_content
 
 def generate_separated_txt_files(router_configs):
     """
@@ -1006,8 +1021,9 @@ def handle_visual_topology(topology):
         global config_files_content
         config_files_content = generate_separated_txt_files(router_configs)
         
-        # Generar script PTBuilder
-        generate_ptbuilder_script(topology, router_configs, computers)
+        # Generar script PTBuilder y guardar en config_files_content
+        ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
+        config_files_content['ptbuilder'] = ptbuilder_content
         
         return render_template("router_results.html", 
                              routers=router_configs,
@@ -1077,6 +1093,7 @@ def download_by_type(device_type):
             - 'switch_cores': Solo configuraciones de switch cores
             - 'switches': Solo configuraciones de switches
             - 'completo': Todas las configuraciones consolidadas
+            - 'ptbuilder': Script PTBuilder para automatizar creación en Packet Tracer
     
     Returns:
         FileResponse: Archivo TXT correspondiente al tipo solicitado
@@ -1087,11 +1104,13 @@ def download_by_type(device_type):
         - /download/switch_cores → config_switch_cores.txt
         - /download/switches → config_switches.txt
         - /download/completo → config_completo.txt
+        - /download/ptbuilder → topology_ptbuilder.txt
     
     Método: GET
     
     Ejemplo de uso:
         <a href="/download/routers">Descargar Routers</a>
+        <a href="/download/ptbuilder">Descargar PTBuilder Script</a>
     """
     global config_files_content
     
@@ -1100,12 +1119,13 @@ def download_by_type(device_type):
         'routers': 'config_routers.txt',
         'switch_cores': 'config_switch_cores.txt',
         'switches': 'config_switches.txt',
-        'completo': 'config_completo.txt'
+        'completo': 'config_completo.txt',
+        'ptbuilder': 'topology_ptbuilder.txt'
     }
     
     # Validar tipo de dispositivo
     if device_type not in file_names:
-        return "Tipo de dispositivo no válido. Tipos válidos: routers, switch_cores, switches, completo", 400
+        return "Tipo de dispositivo no válido. Tipos válidos: routers, switch_cores, switches, completo, ptbuilder", 400
     
     # Verificar que exista contenido generado
     if device_type not in config_files_content:
