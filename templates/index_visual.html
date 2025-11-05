@@ -12,7 +12,11 @@
     <script type="text/javascript" src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" type="text/css" />
     <style>
-
+        .btn.active {
+            background-color: #238636 !important;
+            box-shadow: 0 0 10px rgba(35, 134, 54, 0.6);
+            border-color: #30a755;
+        }
     </style>
 </head>
 <body>
@@ -143,6 +147,8 @@
         let selectedNode = null;
         let selectedEdge = null;
         let editingEdge = null;
+        let devicePositioningMode = false;
+        let pendingDeviceType = null;
         const MIN_ZOOM = 0.3;
         const MAX_ZOOM = 3.0;
 
@@ -189,6 +195,18 @@
             
             // Eventos
             network.on('click', function(params) {
+                console.log('Click event fired, params:', params);
+                // Si estamos en modo posicionamiento, posicionar el dispositivo
+                if (devicePositioningMode) {
+                    console.log('Mode de posicionamiento activo');
+                    
+                    // Las coordenadas ya están en canvas, usar directamente
+                    const pos = params.pointer.canvas;
+                    console.log('Coordenadas canvas:', pos);
+                    createDeviceAtPosition(pos.x, pos.y);
+                    return;
+                }
+                
                 if (connectionMode && params.nodes.length > 0) {
                     handleConnectionClick(params.nodes[0]);
                 } else if (params.nodes.length > 0) {
@@ -268,9 +286,28 @@
 
         // Agregar dispositivo
         function addDevice(type) {
+            // Activar modo de posicionamiento
+            devicePositioningMode = true;
+            pendingDeviceType = type;
+            
+            // Cambiar cursor y mostrar mensaje
+            document.getElementById('network-canvas').style.cursor = 'crosshair';
+            showNotification(`Haz click en el área de trabajo para posicionar el dispositivo`, 'info');
+            
+            // Cambiar estilo del botón para indicar que está activo
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick') === `addDevice('${type}')`) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function createDeviceAtPosition(x, y) {
+            if (!devicePositioningMode || !pendingDeviceType) return;
+            
             let name, color, shape, deviceType;
-            const x = (Math.random() - 0.5) * 300;
-            const y = (Math.random() - 0.5) * 300;
+            const type = pendingDeviceType;
             
             switch(type) {
                 case 'router':
@@ -329,7 +366,16 @@
                 }
             });
             
-            showNotification(name + ' agregado');
+            // Desactivar modo de posicionamiento
+            devicePositioningMode = false;
+            pendingDeviceType = null;
+            document.getElementById('network-canvas').style.cursor = 'default';
+            
+            // Remover clase active de todos los botones
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            showNotification(`${name} agregado exitosamente`, 'success');
         }
 
         // Agregar VLAN
