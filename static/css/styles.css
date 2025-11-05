@@ -1,0 +1,396 @@
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Panel Izquierdo */
+        .left-panel {
+            width: 250px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .panel-header {
+            background: #21262d;
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .panel-header h2 {
+            color: #58a6ff;
+            font-size: 18px;
+        }
+        
+        .tool-section {
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .tool-section h3 {
+            color: #c9d1d9;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #2ea043;
+        }
+        
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+        
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        
+        .btn-danger {
+            background: #da3633;
+        }
+        
+        .btn-danger:hover {
+            background: #f85149;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 8px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        
+        .center-panel {
+            flex: 1;
+            position: relative;
+            background: #0d1117;
+        }
+        
+        #network-canvas {
+            width: 100%;
+            height: 100%;
+            background: #0d1117;
+        }
+        
+        /* Panel Derecho */
+        .right-panel {
+            width: 300px;
+            background: #161b22;
+            border-left: 1px solid #30363d;
+            overflow-y: auto;
+        }
+        
+        .properties-header {
+            background: #21262d;
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .properties-content {
+            padding: 20px;
+        }
+        
+        .property-group {
+            margin-bottom: 20px;
+        }
+        
+        .property-group h4 {
+            color: #58a6ff;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .vlan-item {
+            background: #21262d;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .vlan-item-info {
+            flex: 1;
+        }
+        
+        .vlan-item-name {
+            color: #c9d1d9;
+            font-weight: bold;
+        }
+        
+        .vlan-item-prefix {
+            color: #8b949e;
+            font-size: 12px;
+        }
+        
+        .vlan-item-delete {
+            background: #da3633;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .vlan-item-delete:hover {
+            background: #f85149;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+        
+        .modal-content {
+            background: #161b22;
+            margin: 0 auto;
+            padding: 0;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90%;
+            max-height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .modal-header h3 {
+            color: #58a6ff;
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .modal-close:hover {
+            background: #30363d;
+            color: #c9d1d9;
+        }
+        
+        .modal-body {
+            margin: 0;
+            padding: 20px 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 20px 30px;
+            border-top: 1px solid #30363d;
+        }
+        
+        .device-info {
+            background: #21262d;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .device-info-label {
+            color: #8b949e;
+            font-size: 12px;
+        }
+        
+        .device-info-value {
+            color: #c9d1d9;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #238636;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+        }
+        
+        .notification.error {
+            background: #da3633;
+        }
+        
+        /* Botones de zoom */
+        .zoom-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            border: none;
+            background: #21262d;
+            color: #8b949e;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .zoom-btn:hover {
+            background: #30363d;
+            color: #c9d1d9;
+            transform: scale(1.05);
+        }
+        
+        /* Botones flotantes */
+        .floating-buttons {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+        
+        .floating-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        
+        .floating-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+        }
+        
+        .floating-btn.connect {
+            background: #1f6feb;
+            color: white;
+        }
+        
+        .floating-btn.connect:hover {
+            background: #388bfd;
+        }
+        
+        .floating-btn.delete {
+            background: #da3633;
+            color: white;
+        }
+        
+        .floating-btn.delete:hover {
+            background: #f85149;
+        }
+        
+        .floating-btn.active {
+            border: 2px solid #7c3aed;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.6), 0 0 30px rgba(124, 58, 237, 0.4);
+            animation: pulse-glow 1.5s infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 15px rgba(124, 58, 237, 0.6), 0 0 30px rgba(124, 58, 237, 0.4);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 20px rgba(124, 58, 237, 0.8), 0 0 40px rgba(124, 58, 237, 0.5);
+            }
+        }

@@ -27,9 +27,14 @@ Versión: 2.0 (Optimizada)
 from flask import Flask, render_template, request, send_file
 import ipaddress
 import json
+import io
 from logic import generate_blocks, export_report_with_routers, Combo, generate_router_config, generate_switch_core_config, generate_routing_table, generate_static_routes_commands
 
 app = Flask(__name__)
+
+# Variable global para almacenar contenido de archivos de configuración en memoria
+# Se sobrescribe en cada generación de topología
+config_files_content = {}
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -206,10 +211,10 @@ def generate_ptbuilder_script(topology, router_configs, computers):
 
 def generate_separated_txt_files(router_configs):
     """
-    Genera 4 archivos TXT separados con las configuraciones de dispositivos
+    Genera el contenido de 4 archivos TXT separados en memoria (no guarda en disco)
     
-    Esta función organiza las configuraciones generadas en archivos independientes
-    para facilitar la implementación por equipos especializados:
+    Esta función organiza las configuraciones generadas en contenido de archivos 
+    independientes que se retornan como diccionario para ser enviados al navegador:
         - config_routers.txt: Solo configuraciones de routers
         - config_switch_cores.txt: Solo configuraciones de switch cores (Capa 3)
         - config_switches.txt: Solo configuraciones de switches (Capa 2)
@@ -225,123 +230,121 @@ def generate_separated_txt_files(router_configs):
                 }
             ]
     
-    Archivos generados:
-        1. config_routers.txt:
-           - Encabezado "CONFIGURACIONES DE ROUTERS"
-           - Cada router separado por línea de 80 caracteres
-           - Formato: ROUTER: {nombre} seguido de comandos IOS
-        
-        2. config_switch_cores.txt:
-           - Encabezado "CONFIGURACIONES DE SWITCH CORES"
-           - Formato idéntico a routers
-        
-        3. config_switches.txt:
-           - Encabezado "CONFIGURACIONES DE SWITCHES"
-           - Formato idéntico a routers
-        
-        4. config_completo.txt:
-           - Encabezado "CONFIGURACIÓN COMPLETA DE LA TOPOLOGÍA"
-           - Secciones separadas: ROUTERS, SWITCH CORES, SWITCHES
-           - Cada dispositivo precedido por "--- {nombre} ---"
+    Returns:
+        dict: Diccionario con el contenido de cada archivo
+            {
+                'routers': str,      # Contenido de config_routers.txt
+                'switch_cores': str, # Contenido de config_switch_cores.txt
+                'switches': str,     # Contenido de config_switches.txt
+                'completo': str      # Contenido de config_completo.txt
+            }
     
-    Optimización:
-        - Filtrado en una sola pasada con list comprehensions O(n)
-        - Escritura secuencial sin mantener todo en memoria
-    
-    Ejemplo de salida (config_routers.txt):
-        ================================================================================
-        CONFIGURACIONES DE ROUTERS
-        ================================================================================
-        
-        ================================================================================
-        ROUTER: R1
-        ================================================================================
-        enable
-        conf t
-        hostname R1
-        ...
+    Nota: Los archivos NO se guardan en disco, solo se generan en memoria
+          para ser descargados directamente por el navegador.
     """
     routers = [r for r in router_configs if r['type'] == 'router']
     switch_cores = [r for r in router_configs if r['type'] == 'switch_core']
     switches = [r for r in router_configs if r['type'] == 'switch']
     
-    # Archivo de routers
-    with open("config_routers.txt", "w", encoding="utf-8") as f:
-        f.write("=" * 80 + "\n")
-        f.write("CONFIGURACIONES DE ROUTERS\n")
-        f.write("=" * 80 + "\n\n")
-        
+    files_content = {}
+    
+    # Contenido de archivo de routers
+    content = []
+    content.append("=" * 80)
+    content.append("CONFIGURACIONES DE ROUTERS")
+    content.append("=" * 80)
+    content.append("")
+    
+    for router in routers:
+        content.append("=" * 80)
+        content.append(f"ROUTER: {router['name']}")
+        content.append("=" * 80)
+        content.extend(router['config'])
+        content.append("")
+        content.append("")
+    
+    files_content['routers'] = "\n".join(content)
+    
+    # Contenido de archivo de switch cores
+    content = []
+    content.append("=" * 80)
+    content.append("CONFIGURACIONES DE SWITCH CORES")
+    content.append("=" * 80)
+    content.append("")
+    
+    for swc in switch_cores:
+        content.append("=" * 80)
+        content.append(f"SWITCH CORE: {swc['name']}")
+        content.append("=" * 80)
+        content.extend(swc['config'])
+        content.append("")
+        content.append("")
+    
+    files_content['switch_cores'] = "\n".join(content)
+    
+    # Contenido de archivo de switches
+    content = []
+    content.append("=" * 80)
+    content.append("CONFIGURACIONES DE SWITCHES")
+    content.append("=" * 80)
+    content.append("")
+    
+    for switch in switches:
+        content.append("=" * 80)
+        content.append(f"SWITCH: {switch['name']}")
+        content.append("=" * 80)
+        content.extend(switch['config'])
+        content.append("")
+        content.append("")
+    
+    files_content['switches'] = "\n".join(content)
+    
+    # Contenido de archivo completo (todos juntos)
+    content = []
+    content.append("=" * 80)
+    content.append("CONFIGURACIÓN COMPLETA DE LA TOPOLOGÍA")
+    content.append("=" * 80)
+    content.append("")
+    
+    if routers:
+        content.append("")
+        content.append("=" * 80)
+        content.append("ROUTERS")
+        content.append("=" * 80)
+        content.append("")
         for router in routers:
-            f.write("=" * 80 + "\n")
-            f.write(f"ROUTER: {router['name']}\n")
-            f.write("=" * 80 + "\n")
-            for line in router['config']:
-                f.write(line + "\n")
-            f.write("\n\n")
+            content.append(f"--- {router['name']} ---")
+            content.extend(router['config'])
+            content.append("")
+            content.append("")
     
-    # Archivo de switch cores
-    with open("config_switch_cores.txt", "w", encoding="utf-8") as f:
-        f.write("=" * 80 + "\n")
-        f.write("CONFIGURACIONES DE SWITCH CORES\n")
-        f.write("=" * 80 + "\n\n")
-        
+    if switch_cores:
+        content.append("")
+        content.append("=" * 80)
+        content.append("SWITCH CORES")
+        content.append("=" * 80)
+        content.append("")
         for swc in switch_cores:
-            f.write("=" * 80 + "\n")
-            f.write(f"SWITCH CORE: {swc['name']}\n")
-            f.write("=" * 80 + "\n")
-            for line in swc['config']:
-                f.write(line + "\n")
-            f.write("\n\n")
+            content.append(f"--- {swc['name']} ---")
+            content.extend(swc['config'])
+            content.append("")
+            content.append("")
     
-    # Archivo de switches
-    with open("config_switches.txt", "w", encoding="utf-8") as f:
-        f.write("=" * 80 + "\n")
-        f.write("CONFIGURACIONES DE SWITCHES\n")
-        f.write("=" * 80 + "\n\n")
-        
+    if switches:
+        content.append("")
+        content.append("=" * 80)
+        content.append("SWITCHES")
+        content.append("=" * 80)
+        content.append("")
         for switch in switches:
-            f.write("=" * 80 + "\n")
-            f.write(f"SWITCH: {switch['name']}\n")
-            f.write("=" * 80 + "\n")
-            for line in switch['config']:
-                f.write(line + "\n")
-            f.write("\n\n")
+            content.append(f"--- {switch['name']} ---")
+            content.extend(switch['config'])
+            content.append("")
+            content.append("")
     
-    # Archivo completo (todos juntos)
-    with open("config_completo.txt", "w", encoding="utf-8") as f:
-        f.write("=" * 80 + "\n")
-        f.write("CONFIGURACIÓN COMPLETA DE LA TOPOLOGÍA\n")
-        f.write("=" * 80 + "\n\n")
-        
-        if routers:
-            f.write("\n" + "=" * 80 + "\n")
-            f.write("ROUTERS\n")
-            f.write("=" * 80 + "\n\n")
-            for router in routers:
-                f.write(f"--- {router['name']} ---\n")
-                for line in router['config']:
-                    f.write(line + "\n")
-                f.write("\n\n")
-        
-        if switch_cores:
-            f.write("\n" + "=" * 80 + "\n")
-            f.write("SWITCH CORES\n")
-            f.write("=" * 80 + "\n\n")
-            for swc in switch_cores:
-                f.write(f"--- {swc['name']} ---\n")
-                for line in swc['config']:
-                    f.write(line + "\n")
-                f.write("\n\n")
-        
-        if switches:
-            f.write("\n" + "=" * 80 + "\n")
-            f.write("SWITCHES\n")
-            f.write("=" * 80 + "\n\n")
-            for switch in switches:
-                f.write(f"--- {switch['name']} ---\n")
-                for line in switch['config']:
-                    f.write(line + "\n")
-                f.write("\n\n")
+    files_content['completo'] = "\n".join(content)
+    
+    return files_content
 
 def handle_visual_topology(topology):
     """
@@ -781,8 +784,7 @@ def handle_visual_topology(topology):
             for ec_config in etherchannel_configs:
                 from logic import generate_etherchannel_config
                 ec_commands = generate_etherchannel_config(ec_config['data'], ec_config['is_from'])
-                for cmd in ec_commands:
-                    config_lines.append(" " + cmd if cmd and not cmd.startswith("interface") else cmd)
+                config_lines.extend(ec_commands)
             
             # Configurar SVIs y DHCP
             assigned_vlans = []
@@ -887,13 +889,20 @@ def handle_visual_topology(topology):
             config_lines.append("exit")
             config_lines.append("")
             
-            # Configurar puerto trunk hacia switch core o router
+            # Configurar puerto trunk hacia switch core, router u otro switch
             etherchannel_configs = []
+            processed_edges = set()  # Para evitar procesar el mismo edge dos veces
+            
             for edge in switch_edges:
+                # Evitar procesar el mismo edge dos veces (cuando hay switch-to-switch)
+                if edge['id'] in processed_edges:
+                    continue
+                    
                 other_id = edge['to'] if edge['from'] == switch['id'] else edge['from']
                 other_node = next((n for n in nodes if n['id'] == other_id), None)
                 
-                if other_node and other_node['data']['type'] in ['switch_core', 'router']:
+                # Aceptar conexiones a switch_core, router u otro switch
+                if other_node and other_node['data']['type'] in ['switch_core', 'router', 'switch']:
                     is_from = edge['from'] == switch['id']
                     
                     # Verificar si es EtherChannel
@@ -903,6 +912,7 @@ def handle_visual_topology(topology):
                             'is_from': is_from,
                             'target': other_node['data']['name']
                         })
+                        processed_edges.add(edge['id'])  # Marcar como procesado
                     else:
                         # Configuración normal de trunk
                         iface_data = edge['data']['fromInterface'] if is_from else edge['data']['toInterface']
@@ -910,6 +920,7 @@ def handle_visual_topology(topology):
                         
                         config_lines.append(f"int {iface_full}")
                         config_lines.append("switchport mode trunk")
+                        processed_edges.add(edge['id'])  # Marcar como procesado
             
             # Configurar EtherChannels si existen
             for ec_config in etherchannel_configs:
@@ -961,8 +972,9 @@ def handle_visual_topology(topology):
                     router['config'] = config
                     router['routes'] = routes
         
-        # Generar archivos TXT separados por tipo
-        generate_separated_txt_files(router_configs)
+        # Generar contenido de archivos TXT separados por tipo (en memoria, no en disco)
+        global config_files_content
+        config_files_content = generate_separated_txt_files(router_configs)
         
         # Generar script PTBuilder
         generate_ptbuilder_script(topology, router_configs, computers)
@@ -992,13 +1004,31 @@ def download():
     Descarga config_completo.txt que contiene todas las configuraciones
     de la topología (routers + switch cores + switches) en un solo archivo.
     
+    El archivo se genera en memoria y se envía directamente al navegador
+    sin guardarse en el disco del servidor.
+    
     Returns:
         FileResponse: Archivo config_completo.txt como descarga adjunta
     
     URL: /download
     Método: GET
     """
-    return send_file("config_completo.txt", as_attachment=True, download_name="config_completo.txt")
+    global config_files_content
+    
+    if 'completo' not in config_files_content:
+        return "No hay configuraciones generadas. Genera una topología primero.", 400
+    
+    # Crear archivo en memoria
+    file_content = config_files_content['completo']
+    file_bytes = io.BytesIO(file_content.encode('utf-8'))
+    file_bytes.seek(0)
+    
+    return send_file(
+        file_bytes,
+        mimetype='text/plain',
+        as_attachment=True,
+        download_name='config_completo.txt'
+    )
 
 @app.route("/download/<device_type>")
 def download_by_type(device_type):
@@ -1007,6 +1037,9 @@ def download_by_type(device_type):
     
     Permite descargar archivos específicos según el tipo de dispositivo,
     facilitando la implementación por equipos especializados.
+    
+    Los archivos se generan en memoria y se envían directamente al navegador
+    sin guardarse en el disco del servidor.
     
     Args:
         device_type (str): Tipo de dispositivo a descargar
@@ -1030,17 +1063,35 @@ def download_by_type(device_type):
     Ejemplo de uso:
         <a href="/download/routers">Descargar Routers</a>
     """
-    files = {
+    global config_files_content
+    
+    # Mapeo de tipos a nombres de archivo
+    file_names = {
         'routers': 'config_routers.txt',
         'switch_cores': 'config_switch_cores.txt',
         'switches': 'config_switches.txt',
-        'completo': 'config_completo.txt',
-        'ptbuilder': 'topology_ptbuilder.txt'
+        'completo': 'config_completo.txt'
     }
     
-    if device_type in files:
-        return send_file(files[device_type], as_attachment=True, download_name=files[device_type])
-    return "Tipo de dispositivo no válido", 400
+    # Validar tipo de dispositivo
+    if device_type not in file_names:
+        return "Tipo de dispositivo no válido. Tipos válidos: routers, switch_cores, switches, completo", 400
+    
+    # Verificar que exista contenido generado
+    if device_type not in config_files_content:
+        return f"No hay configuraciones de tipo '{device_type}' generadas. Genera una topología primero.", 400
+    
+    # Crear archivo en memoria
+    file_content = config_files_content[device_type]
+    file_bytes = io.BytesIO(file_content.encode('utf-8'))
+    file_bytes.seek(0)
+    
+    return send_file(
+        file_bytes,
+        mimetype='text/plain',
+        as_attachment=True,
+        download_name=file_names[device_type]
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)

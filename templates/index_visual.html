@@ -3,403 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diseñador de Topología Cisco</title>
+    <title>CISCO PKT</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌐</text></svg>">
     
     <!-- Vis Network Library (Local) -->
     <script type="text/javascript" src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
-    
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" type="text/css" />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0d1117;
-            color: #c9d1d9;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        .container {
-            display: flex;
-            height: 100vh;
-        }
-        
-        /* Panel Izquierdo */
-        .left-panel {
-            width: 300px;
-            background: #161b22;
-            border-right: 1px solid #30363d;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-        
-        .panel-header {
-            background: #21262d;
-            padding: 20px;
-            border-bottom: 1px solid #30363d;
-        }
-        
-        .panel-header h2 {
-            color: #58a6ff;
-            font-size: 18px;
-        }
-        
-        .tool-section {
-            padding: 20px;
-            border-bottom: 1px solid #30363d;
-        }
-        
-        .tool-section h3 {
-            color: #c9d1d9;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-        
-        .btn {
-            width: 100%;
-            padding: 10px;
-            background: #238636;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-        
-        .btn:hover {
-            background: #2ea043;
-        }
-        
-        .btn-secondary {
-            background: #21262d;
-            border: 1px solid #30363d;
-        }
-        
-        .btn-secondary:hover {
-            background: #30363d;
-        }
-        
-        .btn-danger {
-            background: #da3633;
-        }
-        
-        .btn-danger:hover {
-            background: #f85149;
-        }
-        
-        .input-group {
-            margin-bottom: 15px;
-        }
-        
-        .input-group label {
-            display: block;
-            color: #8b949e;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-        
-        .input-group input,
-        .input-group select {
-            width: 100%;
-            padding: 8px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #c9d1d9;
-            font-size: 14px;
-        }
-        
-        .center-panel {
-            flex: 1;
-            position: relative;
-            background: #0d1117;
-        }
-        
-        #network-canvas {
-            width: 100%;
-            height: 100%;
-            background: #0d1117;
-        }
-        
-        /* Panel Derecho */
-        .right-panel {
-            width: 350px;
-            background: #161b22;
-            border-left: 1px solid #30363d;
-            overflow-y: auto;
-        }
-        
-        .properties-header {
-            background: #21262d;
-            padding: 20px;
-            border-bottom: 1px solid #30363d;
-        }
-        
-        .properties-content {
-            padding: 20px;
-        }
-        
-        .property-group {
-            margin-bottom: 20px;
-        }
-        
-        .property-group h4 {
-            color: #58a6ff;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        
-        .vlan-item {
-            background: #21262d;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .vlan-item-info {
-            flex: 1;
-        }
-        
-        .vlan-item-name {
-            color: #c9d1d9;
-            font-weight: bold;
-        }
-        
-        .vlan-item-prefix {
-            color: #8b949e;
-            font-size: 12px;
-        }
-        
-        .vlan-item-delete {
-            background: #da3633;
-            border: none;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .vlan-item-delete:hover {
-            background: #f85149;
-        }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            overflow-y: auto;
-            padding: 20px 0;
-        }
-        
-        .modal-content {
-            background: #161b22;
-            margin: 0 auto;
-            padding: 0;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            width: 500px;
-            max-width: 90%;
-            max-height: calc(100vh - 40px);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        
-        .modal-header h3 {
-            color: #58a6ff;
-            font-size: 18px;
-            margin: 0;
-        }
-        
-        .modal-header {
-            padding: 20px 30px;
-            border-bottom: 1px solid #30363d;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            color: #8b949e;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        
-        .modal-close:hover {
-            background: #30363d;
-            color: #c9d1d9;
-        }
-        
-        .modal-body {
-            margin: 0;
-            padding: 20px 30px;
-            overflow-y: auto;
-            flex: 1;
-        }
-        
-        .modal-footer {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            padding: 20px 30px;
-            border-top: 1px solid #30363d;
-        }
-        
-        .device-info {
-            background: #21262d;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-        
-        .device-info-label {
-            color: #8b949e;
-            font-size: 12px;
-        }
-        
-        .device-info-value {
-            color: #c9d1d9;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #238636;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            z-index: 2000;
-            display: none;
-        }
-        
-        .notification.error {
-            background: #da3633;
-        }
-        
-        /* Botones de zoom */
-        .zoom-controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 1000;
-        }
-        
-        .zoom-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 6px;
-            border: none;
-            background: #21262d;
-            color: #8b949e;
-            font-size: 18px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .zoom-btn:hover {
-            background: #30363d;
-            color: #c9d1d9;
-            transform: scale(1.05);
-        }
-        
-        /* Botones flotantes */
-        .floating-buttons {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            z-index: 1000;
-            pointer-events: auto;
-        }
-        
-        .floating-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-        }
-        
-        .floating-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-        }
-        
-        .floating-btn.connect {
-            background: #1f6feb;
-            color: white;
-        }
-        
-        .floating-btn.connect:hover {
-            background: #388bfd;
-        }
-        
-        .floating-btn.delete {
-            background: #da3633;
-            color: white;
-        }
-        
-        .floating-btn.delete:hover {
-            background: #f85149;
-        }
-        
-        .floating-btn.active {
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
+
     </style>
 </head>
 <body>
@@ -407,25 +20,27 @@
         <!-- Panel Izquierdo -->
         <div class="left-panel">
             <div class="panel-header">
-                <h2>🌐 Diseñador Cisco</h2>
-                <p style="color: #8b949e; font-size: 12px; margin-top: 5px;">
-                    Construye tu topología de red
-                </p>
+                <h2> Diseñador de Topología</h2>
+                
             </div>
             
             <div class="tool-section">
                 <h3>Dispositivos</h3>
                 <button class="btn" onclick="addDevice('router')" style="margin-bottom: 10px;">
-                    🔵 Agregar Router
+                    <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Router
                 </button>
                 <button class="btn" onclick="addDevice('switch')" style="margin-bottom: 10px;">
-                    🟦 Agregar Switch
+                    <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Switch
                 </button>
                 <button class="btn" onclick="addDevice('switch_core')" style="margin-bottom: 10px;">
-                    🟩 Agregar Switch Core
+                    <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Switch Core
                 </button>
                 <button class="btn" onclick="addDevice('computer')" style="margin-bottom: 10px;">
-                    💻 Agregar Computadora
+                    <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Computadora
                 </button>
             </div>
 
@@ -437,9 +52,12 @@
                 </div>
                 <div class="input-group">
                     <label>Prefijo de Red (8-30)</label>
-                    <input type="number" id="vlan-prefix" placeholder="24" min="8" max="30" value="24">
+                    <input type="number" id="vlan-prefix" placeholder="24" min="8" max="30">
                 </div>
-                <button class="btn" onclick="addVLAN()">➕ Agregar VLAN</button>
+                <button class="btn" onclick="addVLAN()">
+                    <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Agregar VLAN
+                </button>
                 
                 <div id="vlan-list" style="margin-top: 15px;">
                     <!-- VLANs agregadas -->
@@ -450,7 +68,7 @@
             
             <div class="tool-section">
                 <button class="btn" onclick="generateConfigurations()" style="background: #238636;">
-                    ⚡ Generar Configuraciones
+                    Generar Configuración
                 </button>
             </div>
         </div>
@@ -461,17 +79,25 @@
             
             <!-- Botones de Zoom -->
             <div class="zoom-controls">
-                <button class="zoom-btn" onclick="zoomIn()" title="Acercar">➕</button>
-                <button class="zoom-btn" onclick="zoomOut()" title="Alejar">➖</button>
+                <button class="zoom-btn" onclick="zoomIn()" title="Acercar">
+                    <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle;">
+                </button>
+                </button>
+                <button class="zoom-btn" onclick="zoomOut()" title="Alejar">
+                    <img src="{{ url_for('static', filename='assets/menos.png') }}"  style="width:16px; height:16px; vertical-align:middle; ">
+                </button>
+                </button>
             </div>
             
             <!-- Botones Flotantes -->
             <div class="floating-buttons">
                 <button class="floating-btn connect" onclick="toggleConnectionMode()" id="connect-btn" title="Conectar Dispositivos">
-                    ➕
+                    <img src="{{ url_for('static', filename='assets/conexion.png') }}"  style="width:24px; height:24px; vertical-align:middle; ">
+                    
                 </button>
                 <button class="floating-btn delete" onclick="deleteSelected()" title="Eliminar Selección">
-                    🗑️
+                    <img src="{{ url_for('static', filename='assets/eliminar.png') }}"  style="width:24px; height:24px; vertical-align:middle; ">
+                    
                 </button>
             </div>
         </div>
@@ -488,244 +114,16 @@
             </div>
         </div>
     </div>
-
-    <!-- Modal para Conexiones -->
-    <div id="connection-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Configurar Conexión</h3>
-                <button class="modal-close" onclick="closeConnectionModal()" title="Cerrar">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- Información de dispositivos conectados -->
-                <div class="device-info">
-                    <div class="device-info-label">Desde:</div>
-                    <div class="device-info-value" id="conn-from-name"></div>
-                </div>
-                
-                <!-- Selector de tipo de conexión -->
-                <div class="input-group">
-                    <label>Tipo de Conexión</label>
-                    <select id="new-connection-type" onchange="toggleNewConnectionFields()">
-                        <option value="normal">Normal</option>
-                        <option value="etherchannel">EtherChannel</option>
-                    </select>
-                </div>
-
-                <!-- Campos para conexión normal -->
-                <div id="new-normal-fields">
-                    <div class="input-group">
-                        <label>Tipo de Interfaz (origen)</label>
-                        <select id="conn-from-type">
-                            <option value="fa">FastEthernet</option>
-                            <option value="gi">GigabitEthernet</option>
-                            <option value="eth">Ethernet</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Número de Interfaz (origen)</label>
-                        <input type="text" id="conn-from-number" placeholder="0/0" value="0/0">
-                    </div>
-                    
-                    <div class="device-info">
-                        <div class="device-info-label">Hacia:</div>
-                        <div class="device-info-value" id="conn-to-name"></div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Tipo de Interfaz (destino)</label>
-                        <select id="conn-to-type">
-                            <option value="fa">FastEthernet</option>
-                            <option value="gi">GigabitEthernet</option>
-                            <option value="eth">Ethernet</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Número de Interfaz (destino)</label>
-                        <input type="text" id="conn-to-number" placeholder="0/0" value="0/0">
-                    </div>
-                </div>
-
-                <!-- Campos para EtherChannel -->
-                <div id="new-etherchannel-fields" style="display: none;">
-                    <div class="input-group">
-                        <label>Protocolo</label>
-                        <select id="new-etherchannel-protocol">
-                            <option value="lacp">LACP</option>
-                            <option value="pagp">PAgP</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Channel Group</label>
-                        <input type="number" id="new-etherchannel-group" placeholder="1" min="1" max="6" value="1">
-                    </div>
-
-                    <div style="background: #21262d; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                        <h4 style="color: #58a6ff; margin-bottom: 10px; font-size: 13px;">Origen</h4>
-                        <div class="input-group">
-                            <label>Tipo de Interfaz</label>
-                            <select id="new-etherchannel-from-type">
-                                <option value="fa">FastEthernet</option>
-                                <option value="gi">GigabitEthernet</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Rango (ej: 0/1-3)</label>
-                            <input type="text" id="new-etherchannel-from-range" placeholder="0/1-3">
-                        </div>
-                    </div>
-
-                    <div class="device-info">
-                        <div class="device-info-label">Hacia:</div>
-                        <div class="device-info-value" id="conn-to-name-ec"></div>
-                    </div>
-
-                    <div style="background: #21262d; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #58a6ff; margin-bottom: 10px; font-size: 13px;">Destino</h4>
-                        <div class="input-group">
-                            <label>Tipo de Interfaz</label>
-                            <select id="new-etherchannel-to-type">
-                                <option value="fa">FastEthernet</option>
-                                <option value="gi">GigabitEthernet</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Rango (ej: 0/1-3)</label>
-                            <input type="text" id="new-etherchannel-to-range" placeholder="0/1-3">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeConnectionModal()">Cancelar</button>
-                <button class="btn" onclick="saveConnection()">Guardar</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- MODALES  -->
+    
+    <!-- Modal para nueva conexión -->
+    {% include 'modals/connection_modal.html' %}
+    
     <!-- Modal para editar conexión -->
-    <div id="edit-connection-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Editar Conexión</h3>
-                <button class="modal-close" onclick="closeEditConnectionModal()" title="Cerrar">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label>Tipo de Conexión</label>
-                    <select id="edit-connection-type" onchange="toggleEtherChannelFields()">
-                        <option value="normal">Normal</option>
-                        <option value="etherchannel">EtherChannel</option>
-                    </select>
-                </div>
-
-                <div id="normal-connection-fields">
-                    <div class="input-group">
-                        <label>Tipo de Interfaz (origen)</label>
-                        <select id="edit-from-type">
-                            <option value="fa">FastEthernet</option>
-                            <option value="gi">GigabitEthernet</option>
-                            <option value="eth">Ethernet</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Número de Interfaz (origen)</label>
-                        <input type="text" id="edit-from-number" placeholder="0/0">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Tipo de Interfaz (destino)</label>
-                        <select id="edit-to-type">
-                            <option value="fa">FastEthernet</option>
-                            <option value="gi">GigabitEthernet</option>
-                            <option value="eth">Ethernet</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Número de Interfaz (destino)</label>
-                        <input type="text" id="edit-to-number" placeholder="0/0">
-                    </div>
-                </div>
-
-                <div id="etherchannel-fields" style="display: none;">
-                    <div class="input-group">
-                        <label>Protocolo</label>
-                        <select id="etherchannel-protocol">
-                            <option value="lacp">LACP</option>
-                            <option value="pagp">PAgP</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Channel Group</label>
-                        <input type="number" id="etherchannel-group" placeholder="1" min="1" max="6" value="1">
-                    </div>
-
-                    <div style="background: #21262d; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                        <h4 style="color: #58a6ff; margin-bottom: 10px; font-size: 13px;">Origen</h4>
-                        <div class="input-group">
-                            <label>Tipo de Interfaz</label>
-                            <select id="etherchannel-from-type">
-                                <option value="fa">FastEthernet</option>
-                                <option value="gi">GigabitEthernet</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Rango (ej: 0/1-3)</label>
-                            <input type="text" id="etherchannel-from-range" placeholder="0/1-3">
-                        </div>
-                    </div>
-
-                    <div style="background: #21262d; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #58a6ff; margin-bottom: 10px; font-size: 13px;">Destino</h4>
-                        <div class="input-group">
-                            <label>Tipo de Interfaz</label>
-                            <select id="etherchannel-to-type">
-                                <option value="fa">FastEthernet</option>
-                                <option value="gi">GigabitEthernet</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Rango (ej: 0/1-3)</label>
-                            <input type="text" id="etherchannel-to-range" placeholder="0/1-3">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeEditConnectionModal()">Cancelar</button>
-                <button class="btn" onclick="saveEditedConnection()">Guardar</button>
-            </div>
-        </div>
-    </div>
-
+    {% include 'modals/edit_connection_modal.html' %}
+    
     <!-- Modal para asignar VLAN a computadora -->
-    <div id="computer-vlan-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Asignar VLAN a Computadora</h3>
-                <button class="modal-close" onclick="closeComputerVlanModal()" title="Cerrar">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="device-info">
-                    <div class="device-info-label">Computadora:</div>
-                    <div class="device-info-value" id="computer-name"></div>
-                </div>
-                
-                <div class="input-group">
-                    <label>Selecciona VLAN</label>
-                    <select id="computer-vlan-select">
-                        <option value="">-- Selecciona VLAN --</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeComputerVlanModal()">Cancelar</button>
-                <button class="btn" onclick="saveComputerVlan()">Asignar</button>
-            </div>
-        </div>
-    </div>
+    {% include 'modals/computer_vlan_modal.html' %}
 
     <!-- Notificación -->
     <div id="notification" class="notification"></div>
@@ -812,7 +210,7 @@
                     const fromNode = nodes.get(edge.from);
                     const toNode = nodes.get(edge.to);
                     const isRoutingEdge = (fromNode.data.type === 'router' || fromNode.data.type === 'switch_core') &&
-                                          (toNode.data.type === 'router' || toNode.data.type === 'switch_core');
+                                            (toNode.data.type === 'router' || toNode.data.type === 'switch_core');
                     
                     if (isRoutingEdge) {
                         cycleRoutingDirection(edgeId);
@@ -1036,8 +434,28 @@
                 const fromNode = nodes.get(firstNodeConnection);
                 const toNode = nodes.get(nodeId);
                 
+                // Resetear el modal a valores por defecto
+                document.getElementById('new-connection-type').value = 'normal';
+                document.getElementById('conn-from-type').value = 'fa';
+                document.getElementById('conn-from-number').value = '0/0';
+                document.getElementById('conn-to-type').value = 'fa';
+                document.getElementById('conn-to-number').value = '0/0';
+                
+                // Resetear campos de EtherChannel
+                document.getElementById('new-etherchannel-protocol').value = 'lacp';
+                document.getElementById('new-etherchannel-group').value = '1';
+                document.getElementById('new-etherchannel-from-type').value = 'fa';
+                document.getElementById('new-etherchannel-from-range').value = '';
+                document.getElementById('new-etherchannel-to-type').value = 'fa';
+                document.getElementById('new-etherchannel-to-range').value = '';
+                
+                // Mostrar campos normales y ocultar EtherChannel
+                document.getElementById('new-normal-fields').style.display = 'block';
+                document.getElementById('new-etherchannel-fields').style.display = 'none';
+                
                 document.getElementById('conn-from-name').textContent = fromNode.data.name;
                 document.getElementById('conn-to-name').textContent = toNode.data.name;
+                document.getElementById('conn-to-name-ec').textContent = toNode.data.name;
                 document.getElementById('connection-modal').style.display = 'block';
             }
         }
@@ -1153,8 +571,26 @@
         // Cerrar modal de conexión
         function closeConnectionModal() {
             document.getElementById('connection-modal').style.display = 'none';
+            
+            // Resetear todos los campos a valores por defecto
+            document.getElementById('new-connection-type').value = 'normal';
+            document.getElementById('conn-from-type').value = 'fa';
             document.getElementById('conn-from-number').value = '0/0';
+            document.getElementById('conn-to-type').value = 'fa';
             document.getElementById('conn-to-number').value = '0/0';
+            
+            // Resetear campos de EtherChannel
+            document.getElementById('new-etherchannel-protocol').value = 'lacp';
+            document.getElementById('new-etherchannel-group').value = '1';
+            document.getElementById('new-etherchannel-from-type').value = 'fa';
+            document.getElementById('new-etherchannel-from-range').value = '';
+            document.getElementById('new-etherchannel-to-type').value = 'fa';
+            document.getElementById('new-etherchannel-to-range').value = '';
+            
+            // Mostrar campos normales y ocultar EtherChannel
+            document.getElementById('new-normal-fields').style.display = 'block';
+            document.getElementById('new-etherchannel-fields').style.display = 'none';
+            
             firstNodeConnection = null;
             connectionMode = false;
             document.getElementById('connect-btn').classList.remove('active');

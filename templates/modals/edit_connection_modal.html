@@ -1,0 +1,95 @@
+<!-- Modal para editar conexión -->
+<div id="edit-connection-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Conexión</h3>
+            <button class="modal-close" onclick="closeEditConnectionModal()" title="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="input-group">
+                <label>Tipo de Conexión</label>
+                <select id="edit-connection-type" onchange="toggleEtherChannelFields()">
+                    <option value="normal">Normal</option>
+                    <option value="etherchannel">EtherChannel</option>
+                </select>
+            </div>
+
+            <div id="normal-connection-fields">
+                <div class="input-group">
+                    <label>Tipo de Interfaz (origen)</label>
+                    <select id="edit-from-type">
+                        <option value="fa">FastEthernet</option>
+                        <option value="gi">GigabitEthernet</option>
+                        <option value="eth">Ethernet</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Número de Interfaz (origen)</label>
+                    <input type="text" id="edit-from-number" placeholder="0/0">
+                </div>
+                
+                <div class="input-group">
+                    <label>Tipo de Interfaz (destino)</label>
+                    <select id="edit-to-type">
+                        <option value="fa">FastEthernet</option>
+                        <option value="gi">GigabitEthernet</option>
+                        <option value="eth">Ethernet</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Número de Interfaz (destino)</label>
+                    <input type="text" id="edit-to-number" placeholder="0/0">
+                </div>
+            </div>
+
+            <div id="etherchannel-fields" style="display: none;">
+                <div class="input-group">
+                    <label>Protocolo</label>
+                    <select id="etherchannel-protocol">
+                        <option value="lacp">LACP</option>
+                        <option value="pagp">PAgP</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Channel Group</label>
+                    <input type="number" id="etherchannel-group" placeholder="1" min="1" max="6" value="1">
+                </div>
+
+                <div style="background: #21262d; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <h4 style="color: #58a6ff; margin-bottom: 10px; font-size: 13px;">Origen</h4>
+                    <div class="input-group">
+                        <label>Tipo de Interfaz</label>
+                        <select id="etherchannel-from-type">
+                            <option value="fa">FastEthernet</option>
+                            <option value="gi">GigabitEthernet</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Rango (ej: 0/1-3)</label>
+                        <input type="text" id="etherchannel-from-range" placeholder="0/1-3">
+                    </div>
+                </div>
+
+                <div style="background: #21262d; padding: 15px; border-radius: 6px;">
+                    <h4 style="color: #58a6ff; margin-bottom: 10px; font-size: 13px;">Destino</h4>
+                    <div class="input-group">
+                        <label>Tipo de Interfaz</label>
+                        <select id="etherchannel-to-type">
+                            <option value="fa">FastEthernet</option>
+                            <option value="gi">GigabitEthernet</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Rango (ej: 0/1-3)</label>
+                        <input type="text" id="etherchannel-to-range" placeholder="0/1-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeEditConnectionModal()">Cancelar</button>
+            <button class="btn" onclick="saveEditedConnection()">Guardar</button>
+        </div>
+    </div>
+</div>
