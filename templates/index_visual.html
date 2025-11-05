@@ -38,10 +38,6 @@
                     <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
                     Switch Core
                 </button>
-                <button class="btn" onclick="addDevice('computer')" style="margin-bottom: 10px;">
-                    <img src="{{ url_for('static', filename='assets/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
-                    Computadora
-                </button>
             </div>
 
             <div class="tool-section">
@@ -124,6 +120,10 @@
     
     <!-- Modal para asignar VLAN a computadora -->
     {% include 'modals/computer_vlan_modal.html' %}
+    
+    <!-- Modal para administrar computadoras de un switch -->
+    {% include 'modals/manage_computers_modal.html' %}
+    {% include 'modals/add_computer_modal.html' %}
 
     <!-- Notificación -->
     <div id="notification" class="notification"></div>
@@ -687,6 +687,11 @@
             };
             
             const content = document.getElementById('properties-content');
+            
+            // Botón de administrar computadoras solo para switches
+            const computersButton = (node.data.type === 'switch' || node.data.type === 'switch_core') ? 
+                '<button class="btn" onclick="openManageComputersModal()" style="background: #238636; margin-top: 10px;">💻 Administrar Computadoras</button>' : '';
+            
             content.innerHTML = `
                 <div class="property-group">
                     <h4>Nombre del Dispositivo</h4>
@@ -699,6 +704,7 @@
                     <h4>Tipo</h4>
                     <div style="color: #8b949e; font-size: 14px;">${typeNames[node.data.type] || node.data.type}</div>
                 </div>
+                ${computersButton}
                 <div class="property-group">
                     <h4>Conexiones</h4>
                     <div id="device-connections"></div>
@@ -1116,6 +1122,205 @@
         // Cerrar modal de VLAN
         function closeComputerVlanModal() {
             document.getElementById('computer-vlan-modal').style.display = 'none';
+        }
+
+        // Administrar computadoras del switch
+        let currentSwitchForComputers = null; // Variable para guardar el switch actual
+        
+        function openManageComputersModal() {
+            console.log('openManageComputersModal - selectedNode:', selectedNode);
+            
+            if (!selectedNode) {
+                showNotification('Selecciona un switch primero', 'error');
+                return;
+            }
+            
+            // Obtener el nodo completo desde la colección
+            let node;
+            if (typeof selectedNode === 'string') {
+                // Si selectedNode es un ID string, obtener el nodo completo
+                node = nodes.get(selectedNode);
+            } else if (selectedNode.id) {
+                // Si selectedNode tiene id, obtener el nodo completo
+                node = nodes.get(selectedNode.id);
+            } else {
+                // Si selectedNode ya es el objeto completo
+                node = selectedNode;
+            }
+            
+            console.log('node obtenido:', node);
+            console.log('node.data:', node ? node.data : 'undefined');
+            
+            if (!node || !node.data) {
+                showNotification('Error al obtener información del switch', 'error');
+                return;
+            }
+            
+            console.log('node.data.type:', node.data.type);
+            
+            if (node.data.type !== 'switch' && node.data.type !== 'switch_core') {
+                showNotification('Solo puedes administrar computadoras en switches', 'error');
+                return;
+            }
+            
+            // Guardar referencia al switch
+            currentSwitchForComputers = node;
+            
+            const switchName = currentSwitchForComputers.data.name;
+            document.getElementById('switch-computers-name').textContent = switchName;
+            
+            // Inicializar si no existe
+            if (!currentSwitchForComputers.data.computers) {
+                currentSwitchForComputers.data.computers = [];
+            }
+            
+            updateComputersList();
+            document.getElementById('manage-computers-modal').style.display = 'block';
+        }
+        
+        function closeManageComputersModal() {
+            document.getElementById('manage-computers-modal').style.display = 'none';
+        }
+        
+        function updateComputersList() {
+            const listDiv = document.getElementById('computers-list');
+            const computers = currentSwitchForComputers.data.computers || [];
+            
+            if (computers.length === 0) {
+                listDiv.innerHTML = '<p style="color: #8b949e; font-size: 12px; text-align: center; padding: 20px;">No hay computadoras conectadas</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = '';
+            computers.forEach((pc, index) => {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: #21262d; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
+                item.innerHTML = `
+                    <div>
+                        <div style="color: #58a6ff; font-weight: bold; margin-bottom: 4px;">${pc.name}</div>
+                        <div style="color: #8b949e; font-size: 11px;">Puerto: ${pc.portType}${pc.portNumber} • VLAN: ${pc.vlan}</div>
+                    </div>
+                    <button onclick="removeComputer(${index})" style="background: #da3633; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Eliminar</button>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+        
+        function removeComputer(index) {
+            if (confirm('¿Eliminar esta computadora?')) {
+                currentSwitchForComputers.data.computers.splice(index, 1);
+                nodes.update(currentSwitchForComputers);
+                updateComputersList();
+                showNotification('Computadora eliminada');
+            }
+        }
+        
+        function openAddComputerModal() {
+            console.log('openAddComputerModal llamada');
+            console.log('currentSwitchForComputers:', currentSwitchForComputers);
+            
+            // Generar nombre automático
+            const existingComputers = currentSwitchForComputers.data.computers || [];
+            const pcCount = existingComputers.length + 1;
+            document.getElementById('new-pc-name').value = `PC${pcCount}`;
+            
+            console.log('Nombre generado:', `PC${pcCount}`);
+            
+            // Llenar select de VLANs
+            const vlanSelect = document.getElementById('new-pc-vlan');
+            vlanSelect.innerHTML = '<option value="">-- Selecciona VLAN --</option>';
+            
+            const vlanListElement = document.getElementById('vlan-list');
+            console.log('vlan-list element:', vlanListElement);
+            
+            if (!vlanListElement) {
+                showNotification('No se encontró la lista de VLANs. Asegúrate de haber creado VLANs primero.', 'error');
+                return;
+            }
+            
+            const allVlans = vlanListElement.children;
+            console.log('VLANs encontradas:', allVlans.length);
+            
+            if (allVlans.length === 0) {
+                showNotification('No hay VLANs creadas. Crea VLANs primero.', 'error');
+                return;
+            }
+            
+            for (let i = 0; i < allVlans.length; i++) {
+                const vlanName = allVlans[i].textContent.replace('×', '').trim();
+                const option = document.createElement('option');
+                option.value = vlanName;
+                option.textContent = vlanName;
+                vlanSelect.appendChild(option);
+            }
+            
+            // Limpiar otros campos
+            document.getElementById('new-pc-port-number').value = '';
+            
+            console.log('Abriendo modal...');
+            document.getElementById('add-computer-modal').style.display = 'block';
+        }
+        
+        function closeAddComputerModal() {
+            document.getElementById('add-computer-modal').style.display = 'none';
+        }
+        
+        function saveNewComputer() {
+            const name = document.getElementById('new-pc-name').value.trim();
+            const portType = document.getElementById('new-pc-port-type').value;
+            const portNumber = document.getElementById('new-pc-port-number').value.trim();
+            const vlan = document.getElementById('new-pc-vlan').value;
+            
+            console.log('Datos de nueva PC:', { name, portType, portNumber, vlan });
+            
+            if (!name) {
+                showNotification('Ingresa el nombre de la PC', 'error');
+                return;
+            }
+            
+            if (!portNumber) {
+                showNotification('Ingresa el puerto del switch', 'error');
+                return;
+            }
+            
+            if (!vlan) {
+                showNotification('Selecciona una VLAN', 'error');
+                return;
+            }
+            
+            // Validar formato de puerto
+            const portPattern = /^\d+\/\d+$/;
+            if (!portPattern.test(portNumber)) {
+                showNotification('Formato de puerto inválido. Usa formato: 0/1', 'error');
+                return;
+            }
+            
+            // Verificar que el puerto no esté en uso
+            const computers = currentSwitchForComputers.data.computers || [];
+            const portInUse = computers.some(pc => pc.portType === portType && pc.portNumber === portNumber);
+            if (portInUse) {
+                showNotification('Ese puerto ya está en uso', 'error');
+                return;
+            }
+            
+            // Agregar computadora
+            if (!currentSwitchForComputers.data.computers) {
+                currentSwitchForComputers.data.computers = [];
+            }
+            
+            currentSwitchForComputers.data.computers.push({
+                name: name,
+                portType: portType,
+                portNumber: portNumber,
+                vlan: vlan
+            });
+            
+            console.log('Computadora agregada:', currentSwitchForComputers.data.computers);
+            
+            nodes.update(currentSwitchForComputers);
+            updateComputersList();
+            closeAddComputerModal();
+            showNotification(`Computadora ${name} agregada`);
         }
 
         // Limpiar selección

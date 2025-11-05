@@ -695,16 +695,29 @@ def handle_visual_topology(topology):
                 
                 other_type = other_node['data']['type']
                 
+                # Computadoras conectadas directamente (antiguo sistema)
                 if other_type == 'computer' and other_node['data'].get('vlan'):
                     vlans_used.add(other_node['data']['vlan'])
                 elif other_type == 'switch':
-                    # Buscar computadoras del switch
+                    # Buscar computadoras del switch (antiguo sistema - nodos)
                     switch_edges = edges_by_node.get(other_id, [])
                     for se in switch_edges:
                         comp_id = se['to'] if se['from'] == other_id else se['from']
                         comp = node_map.get(comp_id)
                         if comp and comp['data']['type'] == 'computer' and comp['data'].get('vlan'):
                             vlans_used.add(comp['data']['vlan'])
+                    
+                    # Buscar computadoras del switch (nuevo sistema - almacenadas)
+                    if 'computers' in other_node['data']:
+                        for pc in other_node['data']['computers']:
+                            if pc.get('vlan'):
+                                vlans_used.add(pc['vlan'])
+            
+            # Computadoras conectadas directamente al switch core (nuevo sistema)
+            if 'computers' in swc['data']:
+                for pc in swc['data']['computers']:
+                    if pc.get('vlan'):
+                        vlans_used.add(pc['vlan'])
             
             # Crear VLANs
             for vlan_name in sorted(vlans_used):
@@ -860,6 +873,7 @@ def handle_visual_topology(topology):
             vlans_used = set()
             computer_ports = []
             
+            # Procesar computadoras del antiguo sistema (nodos computer conectados)
             for edge in switch_edges:
                 other_id = edge['to'] if edge['from'] == switch_id else edge['from']
                 other_node = node_map.get(other_id)
@@ -879,6 +893,22 @@ def handle_visual_topology(topology):
                                 'interface': iface_full,
                                 'vlan': vlan_num,
                                 'computer': other_node['data']['name']
+                            })
+            
+            # Procesar computadoras del nuevo sistema (almacenadas en el switch)
+            if 'computers' in switch['data']:
+                for pc in switch['data']['computers']:
+                    vlan_name = pc.get('vlan')
+                    if vlan_name:
+                        vlan_num = ''.join(filter(str.isdigit, vlan_name))
+                        if vlan_num:
+                            vlans_used.add((vlan_num, vlan_name))
+                            
+                            port_full = f"{pc['portType']}{pc['portNumber']}"
+                            computer_ports.append({
+                                'interface': port_full,
+                                'vlan': vlan_num,
+                                'computer': pc['name']
                             })
             
             # Crear VLANs
