@@ -599,12 +599,19 @@ def handle_visual_topology(topology):
                 switch_edges = edges_by_node.get(switch_id, [])
                 
                 vlans_used = set()
-                for se in switch_edges:
-                    other_id = se['to'] if se['from'] == switch_id else se['from']
-                    comp = node_map.get(other_id)
-                    if comp and comp['data']['type'] == 'computer' and comp['data'].get('vlan'):
-                        vlans_used.add(comp['data']['vlan'])
+                # for se in switch_edges:
+                #     other_id = se['to'] if se['from'] == switch_id else se['from']
+                #     comp = node_map.get(other_id)
+                #     if comp and comp['data']['type'] == 'computer' and comp['data'].get('vlan'):
+                #         vlans_used.add(comp['data']['vlan'])
                 
+                # Detectar computadoras del sistema nuevo (almacenadas en switch.data.computers)
+                switch_node = node_map.get(switch_id)
+                if switch_node and 'computers' in switch_node['data']:
+                    for pc in switch_node['data']['computers']:
+                        if pc.get('vlan'):
+                            vlans_used.add(pc['vlan'])
+
                 # Configurar interfaz principal
                 config_lines.append(f"int {iface_full}")
                 config_lines.append("no shut")
