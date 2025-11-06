@@ -12,7 +12,11 @@
     <script type="text/javascript" src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" type="text/css" />
     <style>
-
+        .btn.active {
+            background-color: #238636 !important;
+            box-shadow: 0 0 10px rgba(35, 134, 54, 0.6);
+            border-color: #30a755;
+        }
     </style>
 </head>
 <body>
@@ -143,6 +147,8 @@
         let selectedNode = null;
         let selectedEdge = null;
         let editingEdge = null;
+        let devicePositioningMode = false;
+        let pendingDeviceType = null;
         const MIN_ZOOM = 0.3;
         const MAX_ZOOM = 3.0;
 
@@ -189,6 +195,14 @@
             
             // Eventos
             network.on('click', function(params) {
+                // Si estamos en modo posicionamiento, posicionar el dispositivo
+                if (devicePositioningMode) {
+                    // Las coordenadas ya están en canvas, usar directamente
+                    const pos = params.pointer.canvas;
+                    createDeviceAtPosition(pos.x, pos.y);
+                    return;
+                }
+                
                 if (connectionMode && params.nodes.length > 0) {
                     handleConnectionClick(params.nodes[0]);
                 } else if (params.nodes.length > 0) {
@@ -214,6 +228,33 @@
                     
                     if (isRoutingEdge) {
                         cycleRoutingDirection(edgeId);
+                    }
+                }
+            });
+
+            // Evento dragEnd: Se dispara cuando el usuario termina de mover un nodo
+            // ACTUALIZA explícitamente las coordenadas en el DataSet de vis.network
+            network.on('dragEnd', function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    const nodeData = nodes.get(nodeId);
+                    
+                    // El nodo ha sido movido, necesitamos actualizar explícitamente sus coordenadas
+                    // vis.network mueve visualmente el nodo pero NO actualiza automáticamente el DataSet
+                    const pos = network.getPositions(nodeId);
+                    
+                    if (pos[nodeId]) {
+                        const newX = pos[nodeId].x;
+                        const newY = pos[nodeId].y;
+                        
+                        // ACTUALIZAR el nodo en el DataSet con las nuevas coordenadas
+                        nodes.update({
+                            id: nodeId,
+                            x: newX,
+                            y: newY
+                        });
+                        
+                        console.log(`✓ Dispositivo ${nodeData.label} actualizado a: x=${Math.round(newX)}, y=${Math.round(newY)}`);
                     }
                 }
             });
@@ -268,9 +309,28 @@
 
         // Agregar dispositivo
         function addDevice(type) {
+            // Activar modo de posicionamiento
+            devicePositioningMode = true;
+            pendingDeviceType = type;
+            
+            // Cambiar cursor y mostrar mensaje
+            document.getElementById('network-canvas').style.cursor = 'crosshair';
+            showNotification(`Haz click en el área de trabajo para posicionar el dispositivo`, 'info');
+            
+            // Cambiar estilo del botón para indicar que está activo
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick') === `addDevice('${type}')`) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function createDeviceAtPosition(x, y) {
+            if (!devicePositioningMode || !pendingDeviceType) return;
+            
             let name, color, shape, deviceType;
-            const x = (Math.random() - 0.5) * 300;
-            const y = (Math.random() - 0.5) * 300;
+            const type = pendingDeviceType;
             
             switch(type) {
                 case 'router':
@@ -306,8 +366,9 @@
                 title: name,
                 shape: shape,
                 size: 30,
-                x: x,
-                y: y,
+                x: x,  // Coordenada X exacta posicionada por el usuario
+                y: y,  // Coordenada Y exacta posicionada por el usuario - Se usarán en PTBuilder
+                fixed: false,  // Permitir que el nodo sea arrastrable
                 color: color,
                 font: {
                     color: '#ffffff',
@@ -321,15 +382,16 @@
                 }
             });
             
-            network.focus(id, {
-                scale: 1.2,
-                animation: {
-                    duration: 500,
-                    easingFunction: 'easeInOutQuad'
-                }
-            });
+            // Desactivar modo de posicionamiento
+            devicePositioningMode = false;
+            pendingDeviceType = null;
+            document.getElementById('network-canvas').style.cursor = 'default';
             
-            showNotification(name + ' agregado');
+            // Remover clase active de todos los botones
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            showNotification(`${name} agregado exitosamente`, 'success');
         }
 
         // Agregar VLAN
@@ -1481,6 +1543,12 @@
                 edges: edges.get(),
                 vlans: vlans
             };
+            
+            // Verificar coordenadas antes de enviar
+            console.log('📊 Coordenadas de dispositivos a enviar:');
+            data.nodes.forEach(node => {
+                console.log(`  ${node.data.name}: x=${Math.round(node.x)}, y=${Math.round(node.y)}`);
+            });
             
             const input = document.createElement('input');
             input.type = 'hidden';

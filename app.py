@@ -90,8 +90,71 @@ def get_available_interfaces_for_device(device_type):
     }
     return interfaces.get(device_type, [])
 
+def transform_coordinates_to_ptbuilder(nodes, scale_factor=1.0):
+    """
+    Transforma coordenadas de vis.network manteniendo la relación real entre dispositivos.
+    
+    La topología se centra en el espacio de Packet Tracer sin estirar para llenar todo el espacio.
+    Esto permite mantener las distancias relativas y permitir zoom en Packet Tracer.
+    
+    Rango de Packet Tracer: X: -7500 a 11500 | Y: -1600 a 5600
+    Centro de Packet Tracer: (2000, 2000)
+    
+    Args:
+        nodes: Lista de nodos con propiedades x, y
+        scale_factor: Factor de escala (default 1.0 = mantiene distancias de vis.network)
+        
+    Returns:
+        Diccionario con transformación: {node_id: {x, y}}
+    """
+    if not nodes:
+        return {}
+    
+    # Centro del espacio de Packet Tracer
+    PT_CENTER_X = 2000
+    PT_CENTER_Y = 2000
+    
+    # Calcular centro y rango de la topología actual en vis.network
+    x_coords = [node.get('x', 0) for node in nodes]
+    y_coords = [node.get('y', 0) for node in nodes]
+    
+    if not x_coords or not y_coords:
+        return {}
+    
+    x_min, x_max = min(x_coords), max(x_coords)
+    y_min, y_max = min(y_coords), max(y_coords)
+    
+    # Centro actual de la topología
+    topology_center_x = (x_min + x_max) / 2
+    topology_center_y = (y_min + y_max) / 2
+    
+    # Transformar cada nodo: centrar y aplicar escala
+    transformed = {}
+    for node in nodes:
+        node_id = node.get('id')
+        x_orig = node.get('x', 0)
+        y_orig = node.get('y', 0)
+        
+        # Desplazar al origen (restar el centro)
+        x_relative = (x_orig - topology_center_x) * scale_factor
+        y_relative = (y_orig - topology_center_y) * scale_factor
+        
+        # Mover al centro de Packet Tracer
+        x_pt = int(PT_CENTER_X + x_relative)
+        y_pt = int(PT_CENTER_Y + y_relative)
+        
+        transformed[node_id] = {'x': x_pt, 'y': y_pt}
+    
+    return transformed
+
 def generate_ptbuilder_script(topology, router_configs, computers):
-    """Genera script PTBuilder para crear topología en Packet Tracer"""
+    """
+    Genera script PTBuilder para crear topología en Packet Tracer
+    
+    Las coordenadas (x, y) de cada dispositivo se transforman del rango
+    de vis.network al rango de Packet Tracer, manteniendo la topología relativa.
+    PTBuilder usará estas coordenadas transformadas para crear los dispositivos.
+    """
     lines = []
     device_models = {
         'router': '2811',
@@ -158,12 +221,33 @@ def generate_ptbuilder_script(topology, router_configs, computers):
                 return iface
         return None
     
+    # Transformar coordenadas de vis.network a Packet Tracer
+    coordinate_transform = transform_coordinates_to_ptbuilder(nodes)
+    
+    # DEBUG: Mostrar coordenadas transformadas
+    print("\n🔄 COORDENADAS TRANSFORMADAS AL RANGO DE PACKET TRACER:")
+    for node in nodes:
+        node_id = node.get('id')
+        if node_id in coordinate_transform:
+            original_x = node.get('x')
+            original_y = node.get('y')
+            transformed = coordinate_transform[node_id]
+            print(f"  {node['data']['name']}: ({original_x}, {original_y}) → ({transformed['x']}, {transformed['y']})")
+    
     for node in nodes:
         device_name = node['data']['name']
         device_type = node['data']['type']
         model = device_models.get(device_type, 'PC-PT')
-        x = node.get('x', 100)
-        y = node.get('y', 100)
+        node_id = node.get('id')
+        
+        # Usar coordenadas transformadas al rango de Packet Tracer
+        if node_id in coordinate_transform:
+            x = coordinate_transform[node_id]['x']
+            y = coordinate_transform[node_id]['y']
+        else:
+            # Fallback: usar centro de Packet Tracer
+            x, y = 2000, 2000
+        
         lines.append(f'addDevice("{device_name}", "{model}", {x}, {y});')
     
     lines.append("")
@@ -206,8 +290,14 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         pc_name = computer['data']['name']
         lines.append(f'configurePcIp("{pc_name}", true);')
     
+    # Retornar contenido en lugar de escribir a disco
+    ptbuilder_content = "\n".join(lines)
+    
+    # También guardar en archivo para compatibilidad con herramientas existentes
     with open("topology_ptbuilder.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+        f.write(ptbuilder_content)
+    
+    return ptbuilder_content
 
 def generate_separated_txt_files(router_configs):
     """
@@ -441,6 +531,11 @@ def handle_visual_topology(topology):
         nodes = topology['nodes']
         edges = topology['edges']
         vlans = topology['vlans']
+        
+        # DEBUG: Mostrar coordenadas recibidas del cliente
+        print("\n🔍 COORDINADAS RECIBIDAS DEL CLIENTE:")
+        for node in nodes:
+            print(f"  {node['data']['name']}: x={node.get('x')}, y={node.get('y')}")
         
         # ============================================================
         # FASE 1: PRE-CÁLCULO DE MAPAS PARA OPTIMIZACIÓN O(1)
@@ -1013,8 +1108,9 @@ def handle_visual_topology(topology):
         global config_files_content
         config_files_content = generate_separated_txt_files(router_configs)
         
-        # Generar script PTBuilder
-        generate_ptbuilder_script(topology, router_configs, computers)
+        # Generar script PTBuilder y guardar en config_files_content
+        ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
+        config_files_content['ptbuilder'] = ptbuilder_content
         
         return render_template("router_results.html", 
                              routers=router_configs,
@@ -1084,6 +1180,7 @@ def download_by_type(device_type):
             - 'switch_cores': Solo configuraciones de switch cores
             - 'switches': Solo configuraciones de switches
             - 'completo': Todas las configuraciones consolidadas
+            - 'ptbuilder': Script PTBuilder para automatizar creación en Packet Tracer
     
     Returns:
         FileResponse: Archivo TXT correspondiente al tipo solicitado
@@ -1094,11 +1191,13 @@ def download_by_type(device_type):
         - /download/switch_cores → config_switch_cores.txt
         - /download/switches → config_switches.txt
         - /download/completo → config_completo.txt
+        - /download/ptbuilder → topology_ptbuilder.txt
     
     Método: GET
     
     Ejemplo de uso:
         <a href="/download/routers">Descargar Routers</a>
+        <a href="/download/ptbuilder">Descargar PTBuilder Script</a>
     """
     global config_files_content
     
@@ -1107,12 +1206,13 @@ def download_by_type(device_type):
         'routers': 'config_routers.txt',
         'switch_cores': 'config_switch_cores.txt',
         'switches': 'config_switches.txt',
-        'completo': 'config_completo.txt'
+        'completo': 'config_completo.txt',
+        'ptbuilder': 'topology_ptbuilder.txt'
     }
     
     # Validar tipo de dispositivo
     if device_type not in file_names:
-        return "Tipo de dispositivo no válido. Tipos válidos: routers, switch_cores, switches, completo", 400
+        return "Tipo de dispositivo no válido. Tipos válidos: routers, switch_cores, switches, completo, ptbuilder", 400
     
     # Verificar que exista contenido generado
     if device_type not in config_files_content:
