@@ -290,16 +290,26 @@ def generate_ptbuilder_script(topology, router_configs, computers):
             from_iface_data = edge['data']['fromInterface']
             to_iface_data = edge['data']['toInterface']
             
+            # DEBUG: Mostrar datos separados antes de construir nombre completo
+            print(f"\n🔗 CONEXIÓN: {from_name} → {to_name}")
+            print(f"   Edge ID: {edge.get('id')}")
+            print(f"   Edge Data completo: {edge['data']}")
+           
+            
             # Construir nombre completo de interfaz
             from_iface = f"{from_iface_data['type']}{from_iface_data['number']}"
             to_iface = f"{to_iface_data['type']}{to_iface_data['number']}"
+            
+            # DEBUG: Mostrar interfaces construidas
+            print(f"   From Interface construida: {from_iface}")
+            print(f"   To Interface construida: {to_iface}")
+      
             
             lines.append(f'addLink("{from_name}", "{from_iface}", "{to_name}", "{to_iface}", "straight");')
         else:
             print(f"⚠️ Advertencia: Conexión sin interfaces definidas entre {from_name} y {to_name}")
     
     lines.append("")
-    
     # Generar configuraciones para cada dispositivo (routers, switches, switch cores)
     for router_config in router_configs:
         device_name = router_config['name']
@@ -692,7 +702,7 @@ def handle_visual_topology(topology):
                     ip_addr = str(ip_data['from_ip']) if is_from else str(ip_data['to_ip'])
                     next_hop_ip = str(ip_data['to_ip']) if is_from else str(ip_data['from_ip'])
                     
-                    config_lines.append(f"int {iface_full}")
+                    config_lines.append(f"int {iface_full} ")
                     config_lines.append(f"ip add {ip_addr} {ip_data['mask']}")
                     config_lines.append("no shut")
                     
@@ -716,6 +726,7 @@ def handle_visual_topology(topology):
                 edge = switch_connection['edge']
                 is_from = switch_connection['is_from']
                 iface_data = edge['data']['fromInterface'] if is_from else edge['data']['toInterface']
+                #Aquí el type le agrega Fa
                 iface_full = f"{iface_data['type']}{iface_data['number']}"
                 
                 # Obtener VLANs del switch conectado (búsqueda O(1))
