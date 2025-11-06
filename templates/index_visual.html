@@ -195,14 +195,10 @@
             
             // Eventos
             network.on('click', function(params) {
-                console.log('Click event fired, params:', params);
                 // Si estamos en modo posicionamiento, posicionar el dispositivo
                 if (devicePositioningMode) {
-                    console.log('Mode de posicionamiento activo');
-                    
                     // Las coordenadas ya están en canvas, usar directamente
                     const pos = params.pointer.canvas;
-                    console.log('Coordenadas canvas:', pos);
                     createDeviceAtPosition(pos.x, pos.y);
                     return;
                 }
@@ -232,6 +228,33 @@
                     
                     if (isRoutingEdge) {
                         cycleRoutingDirection(edgeId);
+                    }
+                }
+            });
+
+            // Evento dragEnd: Se dispara cuando el usuario termina de mover un nodo
+            // ACTUALIZA explícitamente las coordenadas en el DataSet de vis.network
+            network.on('dragEnd', function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    const nodeData = nodes.get(nodeId);
+                    
+                    // El nodo ha sido movido, necesitamos actualizar explícitamente sus coordenadas
+                    // vis.network mueve visualmente el nodo pero NO actualiza automáticamente el DataSet
+                    const pos = network.getPositions(nodeId);
+                    
+                    if (pos[nodeId]) {
+                        const newX = pos[nodeId].x;
+                        const newY = pos[nodeId].y;
+                        
+                        // ACTUALIZAR el nodo en el DataSet con las nuevas coordenadas
+                        nodes.update({
+                            id: nodeId,
+                            x: newX,
+                            y: newY
+                        });
+                        
+                        console.log(`✓ Dispositivo ${nodeData.label} actualizado a: x=${Math.round(newX)}, y=${Math.round(newY)}`);
                     }
                 }
             });
@@ -345,6 +368,7 @@
                 size: 30,
                 x: x,  // Coordenada X exacta posicionada por el usuario
                 y: y,  // Coordenada Y exacta posicionada por el usuario - Se usarán en PTBuilder
+                fixed: false,  // Permitir que el nodo sea arrastrable
                 color: color,
                 font: {
                     color: '#ffffff',
@@ -1410,6 +1434,12 @@
                 edges: edges.get(),
                 vlans: vlans
             };
+            
+            // Verificar coordenadas antes de enviar
+            console.log('📊 Coordenadas de dispositivos a enviar:');
+            data.nodes.forEach(node => {
+                console.log(`  ${node.data.name}: x=${Math.round(node.x)}, y=${Math.round(node.y)}`);
+            });
             
             const input = document.createElement('input');
             input.type = 'hidden';
