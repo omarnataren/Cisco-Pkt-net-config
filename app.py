@@ -90,6 +90,26 @@ def get_available_interfaces_for_device(device_type):
     }
     return interfaces.get(device_type, [])
 
+def expand_interface_type(short_type):
+    """
+    Convierte tipo de interfaz corto a nombre completo para PT Builder
+    
+    Args:
+        short_type (str): Tipo corto de interfaz ('fa', 'gi', 'eth')
+        
+    Returns:
+        str: Nombre completo de interfaz ('FastEthernet', 'GigabitEthernet', 'Ethernet')
+    """
+    interface_map = {
+        'fa': 'FastEthernet',
+        'gi': 'GigabitEthernet',
+        'eth': 'Ethernet',
+        'FastEthernet': 'FastEthernet',
+        'GigabitEthernet': 'GigabitEthernet',
+        'Ethernet': 'Ethernet'
+    }
+    return interface_map.get(short_type, short_type)
+
 def transform_coordinates_to_ptbuilder(nodes, scale_factor=1.0):
     """
     Transforma coordenadas de vis.network manteniendo la relación real entre dispositivos.
@@ -571,10 +591,15 @@ def handle_visual_topology(topology):
         edges = topology['edges']
         vlans = topology['vlans']
         
+        # Obtener el primer octeto de la red base (por defecto 19 si no se especifica)
+        base_octet = topology.get('baseNetworkOctet', 19)
+        
         # DEBUG: Mostrar coordenadas recibidas del cliente
         print("\n🔍 COORDINADAS RECIBIDAS DEL CLIENTE:")
         for node in nodes:
             print(f"  {node['data']['name']}: x={node.get('x')}, y={node.get('y')}")
+        
+        print(f"\nRED BASE CONFIGURADA: {base_octet}.0.0.0/8")
         
         # ============================================================
         # FASE 1: PRE-CÁLCULO DE MAPAS PARA OPTIMIZACIÓN O(1)
@@ -601,17 +626,98 @@ def handle_visual_topology(topology):
                 switches.append(n)
             elif node_type == 'switch_core':
                 switch_cores.append(n)
-            elif node_type == 'computer':
-                computers.append(n)
         
+        # Extraer computadoras del NUEVO SISTEMA (almacenadas en switches y switch_cores)
+        # Ya no buscamos nodos tipo 'computer', solo las almacenadas en data.computers
+        for s in switches:
+            mov_in_x = 0;
+            if 'computers' in s['data']:
+                for pc in s['data']['computers']:
+                    # Crear estructura compatible con el formato de nodo
+                    pc_node = {
+                        'id': f"{s['id']}_pc_{pc['name']}",  # ID único basado en el switch
+                        'data': {
+                            'name': pc['name'],
+                            'type': 'computer',
+                            'vlan': pc.get('vlan'),
+                            'port': f"{pc['portType']}{pc['portNumber']}"
+                        },
+                        # Posicionar cerca del switch
+                        'x': s.get('x', 0) + 75 - mov_in_x,  
+                        'y': s.get('y', 0) + 50
+                    }
+                    computers.append(pc_node)
+                    # Agregar también a la lista de nodos para PT Builder
+                    nodes.append(pc_node)
+                    
+                    # CREAR EDGE (CONEXIÓN) entre switch y PC para PT Builder
+                    edge_synthetic = {
+                        'id': f"edge_{s['id']}_to_{pc_node['id']}",
+                        'from': s['id'],
+                        'to': pc_node['id'],
+                        'data': {
+                            'fromInterface': {
+                                'type': expand_interface_type(pc['portType']),  # Expandir fa -> FastEthernet
+                                'number': pc['portNumber']
+                            },
+                            'toInterface': {
+                                'type': 'FastEthernet',
+                                'number': '0'
+                            }
+                        }
+                    }
+                    edges.append(edge_synthetic)
+                    
+                    mov_in_x += 75;
+        
+        for swc in switch_cores:
+            mov_in_x = 0;
+            if 'computers' in swc['data']:
+                for pc in swc['data']['computers']:
+                    # Crear estructura compatible con el formato de nodo
+                    pc_node = {
+                        'id': f"{swc['id']}_pc_{pc['name']}",  # ID único basado en el switch core
+                        'data': {
+                            'name': pc['name'],
+                            'type': 'computer',
+                            'vlan': pc.get('vlan'),
+                            'port': f"{pc['portType']}{pc['portNumber']}"
+                        },
+                        # Posicionar cerca del switch core
+                        'x': swc.get('x', 0) + 75 - mov_in_x,
+                        'y': swc.get('y', 0) + 50
+                    }
+                    computers.append(pc_node)
+                    # Agregar también a la lista de nodos para PT Builder
+                    nodes.append(pc_node)
+                    
+                    # CREAR EDGE (CONEXIÓN) entre switch core y PC para PT Builder
+                    edge_synthetic = {
+                        'id': f"edge_{swc['id']}_to_{pc_node['id']}",
+                        'from': swc['id'],
+                        'to': pc_node['id'],
+                        'data': {
+                            'fromInterface': {
+                                'type': expand_interface_type(pc['portType']),  # Expandir fa -> FastEthernet
+                                'number': pc['portNumber']
+                            },
+                            'toInterface': {
+                                'type': 'FastEthernet',
+                                'number': '0'
+                            }
+                        }
+                    }
+                    edges.append(edge_synthetic)
+                    
+                    mov_in_x += 75;
         # ============================================================
         # FASE 3: ASIGNACIÓN DE REDES /30 PARA BACKBONE
         # ============================================================
         # Backbone: Conexiones punto a punto entre routers/switch cores
-        # Usa red 19.0.0.0/8 dividida en subredes /30 (2 hosts utilizables)
+        # Usa la red base configurada (por defecto 19.0.0.0/8) dividida en subredes /30
         router_configs = []
         
-        base = ipaddress.ip_network("19.0.0.0/8")  # Base para subnetting de backbone
+        base = ipaddress.ip_network(f"{base_octet}.0.0.0/8")  # Base configurable para subnetting
         used = []  # Lista de subredes /30 ya asignadas
         edge_ips = {}  # Mapeo edge_id → IPs asignadas
         

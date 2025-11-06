@@ -11,13 +11,7 @@
     <!-- Vis Network Library (Local) -->
     <script type="text/javascript" src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" type="text/css" />
-    <style>
-        .btn.active {
-            background-color: #238636 !important;
-            box-shadow: 0 0 10px rgba(35, 134, 54, 0.6);
-            border-color: #30a755;
-        }
-    </style>
+    
 </head>
 <body>
     <div class="container">
@@ -26,6 +20,14 @@
             <div class="panel-header">
                 <h2> Diseñador de Topología</h2>
                 
+            </div>
+
+            <div class="tool-section">
+                <h3>Red Base</h3>
+                <div class="input-group">
+                    <label>Primer Octeto de Red</label>
+                    <input type="number" id="base-network-octet" placeholder="19" min="1" max="223">
+                </div>
             </div>
             
             <div class="tool-section">
@@ -174,6 +176,22 @@
         ];
         
         /**
+         * Orden de asignación de interfaces para Switches (2960-24TT)
+         * FastEthernet: 0/1 a 0/24 (24 puertos)
+         * GigabitEthernet: 0/1 a 0/2 (2 uplinks)
+         */
+        const SWITCH_INTERFACE_ORDER = [
+            // FastEthernet 0/1 a 0/24
+            ...Array.from({ length: 24 }, (_, i) => ({ 
+                type: 'FastEthernet', 
+                number: `0/${i + 1}` 
+            })),
+            // GigabitEthernet 0/1 a 0/2
+            { type: 'GigabitEthernet', number: '0/1' },
+            { type: 'GigabitEthernet', number: '0/2' }
+        ];
+        
+        /**
          * Obtiene la siguiente interfaz disponible para un dispositivo
          * @param {string} deviceName - Nombre del dispositivo
          * @param {string} deviceType - Tipo de dispositivo (router, switch, switch_core, computer)
@@ -198,8 +216,21 @@
                 return null;
             }
             
+            if (deviceType === 'switch') {
+                // Para switches, seguir el orden: FastEthernet 0/1-24, luego GigabitEthernet 0/1-2
+                for (let iface of SWITCH_INTERFACE_ORDER) {
+                    const key = `${iface.type}${iface.number}`;
+                    if (!usedInterfaces[deviceName].includes(key)) {
+                        usedInterfaces[deviceName].push(key);
+                        return { type: iface.type, number: iface.number };
+                    }
+                }
+                console.error(`No hay más interfaces disponibles para el switch ${deviceName}`);
+                return null;
+            }
+            
             // Para otros dispositivos, mantener lógica existente
-            // (switch_core, switch, computer)
+            // (switch_core, computer)
             return null; // Se asignarán manualmente por ahora
         }
         
@@ -563,12 +594,13 @@
                 const fromNode = nodes.get(firstNodeConnection);
                 const toNode = nodes.get(nodeId);
                 
-                // Auto-asignar interfaces para routers (siempre que haya un router involucrado)
+                // Auto-asignar interfaces para routers y switches
                 let fromInterface = null;
                 let toInterface = null;
                 
-                if (fromNode.data.type === 'router') {
-                    fromInterface = getNextAvailableInterface(fromNode.data.name, 'router');
+                // Asignar interfaz para el nodo origen (router o switch)
+                if (fromNode.data.type === 'router' || fromNode.data.type === 'switch') {
+                    fromInterface = getNextAvailableInterface(fromNode.data.name, fromNode.data.type);
                     if (!fromInterface) {
                         showNotification(`No hay interfaces disponibles en ${fromNode.data.name}`, 'error');
                         firstNodeConnection = null;
@@ -576,8 +608,9 @@
                     }
                 }
                 
-                if (toNode.data.type === 'router') {
-                    toInterface = getNextAvailableInterface(toNode.data.name, 'router');
+                // Asignar interfaz para el nodo destino (router o switch)
+                if (toNode.data.type === 'router' || toNode.data.type === 'switch') {
+                    toInterface = getNextAvailableInterface(toNode.data.name, toNode.data.type);
                     if (!toInterface) {
                         // Liberar la interfaz del origen si ya se asignó
                         if (fromInterface) {
@@ -592,11 +625,19 @@
                 // Resetear el modal a valores por defecto
                 document.getElementById('new-connection-type').value = 'normal';
                 
-                // Si hay al menos un router con interfaz asignada, configurar el modal
+                // Función helper para mapear tipo de interfaz a valor del select
+                function getInterfaceTypeSelectValue(interfaceType) {
+                    if (interfaceType === 'FastEthernet') return 'fa';
+                    if (interfaceType === 'GigabitEthernet') return 'gi';
+                    if (interfaceType === 'Ethernet') return 'eth';
+                    return 'fa'; // default
+                }
+                
+                // Si hay al menos un dispositivo con interfaz asignada, configurar el modal
                 if (fromInterface || toInterface) {
                     // Configurar interfaz FROM
                     if (fromInterface) {
-                        document.getElementById('conn-from-type').value = fromInterface.type === 'FastEthernet' ? 'fa' : 'eth';
+                        document.getElementById('conn-from-type').value = getInterfaceTypeSelectValue(fromInterface.type);
                         document.getElementById('conn-from-number').value = fromInterface.number;
                         document.getElementById('conn-from-type').disabled = true;
                         document.getElementById('conn-from-number').disabled = true;
@@ -611,7 +652,7 @@
                     
                     // Configurar interfaz TO
                     if (toInterface) {
-                        document.getElementById('conn-to-type').value = toInterface.type === 'FastEthernet' ? 'fa' : 'eth';
+                        document.getElementById('conn-to-type').value = getInterfaceTypeSelectValue(toInterface.type);
                         document.getElementById('conn-to-number').value = toInterface.number;
                         document.getElementById('conn-to-type').disabled = true;
                         document.getElementById('conn-to-number').disabled = true;
@@ -1802,6 +1843,9 @@
                 return;
             }
             
+            // Obtener el valor del primer octeto de red base
+            const baseOctet = document.getElementById('base-network-octet').value || '19';
+            
             // Crear formulario y enviar datos a nueva pestaña
             const form = document.createElement('form');
             form.method = 'POST';
@@ -1812,7 +1856,8 @@
             const data = {
                 nodes: nodes.get(),
                 edges: edges.get(),
-                vlans: vlans
+                vlans: vlans,
+                baseNetworkOctet: parseInt(baseOctet)  // Agregar el primer octeto
             };
             
             // Verificar coordenadas antes de enviar
@@ -1820,6 +1865,7 @@
             data.nodes.forEach(node => {
                 console.log(`  ${node.data.name}: x=${Math.round(node.x)}, y=${Math.round(node.y)}`);
             });
+            console.log(`🌐 Red base: ${baseOctet}.0.0.0/8`);
             
             const input = document.createElement('input');
             input.type = 'hidden';

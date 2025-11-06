@@ -61,6 +61,12 @@
             transition: background 0.2s;
         }
         
+        .btn.active {
+            background-color: #238636 !important;
+            box-shadow: 0 0 10px rgba(35, 134, 54, 0.6);
+            border-color: #30a755;
+        }
+
         .btn:hover {
             background: #2ea043;
         }
@@ -92,6 +98,7 @@
             font-size: 12px;
             margin-bottom: 5px;
         }
+        
         
         .input-group input,
         .input-group select {
