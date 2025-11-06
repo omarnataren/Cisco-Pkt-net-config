@@ -24,18 +24,20 @@
             <!-- Campos para conexión normal -->
             <div id="new-normal-fields">
                 <div class="input-group">
-                    <label>Tipo de Interfaz (origen)</label>
-                    <select id="conn-from-type" onchange="updateFromInterfaceList()">
-                        <option value="fa">FastEthernet</option>
-                        <option value="gi">GigabitEthernet</option>
-                        <option value="eth">Ethernet</option>
-                    </select>
-                </div>
-                <div class="input-group">
                     <label>Interfaz (origen)</label>
-                    <select id="conn-from-number">
-                        <option value="">Seleccionar interfaz...</option>
-                    </select>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="conn-from-type" onchange="updateFromInterfaceList()" style="flex: 0 0 140px;">
+                            <option value="fa">FastEthernet</option>
+                            <option value="gi">GigabitEthernet</option>
+                            <option value="eth">Ethernet</option>
+                        </select>
+                        <select id="conn-from-number" style="flex: 1;">
+                            <option value="">Seleccionar interfaz...</option>
+                        </select>
+                    </div>
+                    <small id="conn-from-auto-notice" style="display: none; color: #58a6ff; margin-top: 4px;">
+                        ✓ Interfaz asignada automáticamente para router
+                    </small>
                 </div>
                 
                 <div class="device-info">
@@ -44,18 +46,20 @@
                 </div>
                 
                 <div class="input-group">
-                    <label>Tipo de Interfaz (destino)</label>
-                    <select id="conn-to-type" onchange="updateToInterfaceList()">
-                        <option value="fa">FastEthernet</option>
-                        <option value="gi">GigabitEthernet</option>
-                        <option value="eth">Ethernet</option>
-                    </select>
-                </div>
-                <div class="input-group">
                     <label>Interfaz (destino)</label>
-                    <select id="conn-to-number">
-                        <option value="">Seleccionar interfaz...</option>
-                    </select>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="conn-to-type" onchange="updateToInterfaceList()" style="flex: 0 0 140px;">
+                            <option value="fa">FastEthernet</option>
+                            <option value="gi">GigabitEthernet</option>
+                            <option value="eth">Ethernet</option>
+                        </select>
+                        <select id="conn-to-number" style="flex: 1;">
+                            <option value="">Seleccionar interfaz...</option>
+                        </select>
+                    </div>
+                    <small id="conn-to-auto-notice" style="display: none; color: #58a6ff; margin-top: 4px;">
+                        ✓ Interfaz asignada automáticamente para router
+                    </small>
                 </div>
             </div>
 

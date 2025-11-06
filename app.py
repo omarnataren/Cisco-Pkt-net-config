@@ -147,6 +147,70 @@ def transform_coordinates_to_ptbuilder(nodes, scale_factor=1.0):
     
     return transformed
 
+def format_config_for_ptbuilder(config_lines):
+    """
+    Formatea la configuración para PTBuilder agregando exit\nenable\nconf t antes de cada interfaz.
+    
+    PTBuilder requiere que cada comando de interfaz esté precedido por:
+    exit\nenable\nconf t\n
+    
+    Ejemplo:
+        Entrada: ["R2", "enable", "conf t", "Hostname R2", "Enable secret cisco", "int fa0/0", "ip add ...", "no shut"]
+        Salida: ["R2", "enable", "conf t", "Hostname R2", "Enable secret cisco", "exit", "enable", "conf t", "int fa0/0", "ip add ...", "no shut", "exit", ...]
+    
+    Args:
+        config_lines (list): Lista de líneas de configuración
+        
+    Returns:
+        list: Lista de líneas reformateadas para PTBuilder
+    """
+    if not config_lines:
+        return []
+    
+    formatted = []
+    found_first_interface = False
+    needs_exit_before_next = False
+    
+    for line in config_lines:
+        line_stripped = line.strip()
+        line_lower = line_stripped.lower()
+        
+        # Detectar inicio de configuración de interfaz
+        if line_lower.startswith('int ') or line_lower.startswith('interface '):
+            # Antes de cada interfaz, agregar exit\nenable\nconf t
+            if not found_first_interface:
+                # Primera interfaz: agregar exit después del hostname/enable secret
+                formatted.append('exit')
+                found_first_interface = True
+            else:
+                # Interfaces subsiguientes: agregar exit solo si estábamos dentro de una interfaz
+                if needs_exit_before_next:
+                    formatted.append('exit')
+            
+            # Agregar enable\nconf t antes de la interfaz
+            formatted.append('enable')
+            formatted.append('conf t')
+            formatted.append(line)
+            needs_exit_before_next = True
+            
+        # Detectar comandos de routing que van después de todas las interfaces
+        elif line_lower.startswith('ip route') or line_lower.startswith('ipv6 route'):
+            # Salir de la última interfaz si estábamos dentro
+            if needs_exit_before_next:
+                formatted.append('exit')
+                needs_exit_before_next = False
+            formatted.append(line)
+            
+        # Detectar 'exit' al final de sección de interfaces
+        elif line_lower == 'exit' and found_first_interface and needs_exit_before_next:
+            # Ya lo agregamos automáticamente, no duplicar
+            continue
+            
+        else:
+            formatted.append(line)
+    
+    return formatted
+
 def generate_ptbuilder_script(topology, router_configs, computers):
     """
     Genera script PTBuilder para crear topología en Packet Tracer
@@ -154,6 +218,9 @@ def generate_ptbuilder_script(topology, router_configs, computers):
     Las coordenadas (x, y) de cada dispositivo se transforman del rango
     de vis.network al rango de Packet Tracer, manteniendo la topología relativa.
     PTBuilder usará estas coordenadas transformadas para crear los dispositivos.
+    
+    Las interfaces se obtienen directamente de edge['data']['fromInterface'] y 
+    edge['data']['toInterface'], ya que fueron asignadas automáticamente en el frontend.
     """
     lines = []
     device_models = {
@@ -166,60 +233,6 @@ def generate_ptbuilder_script(topology, router_configs, computers):
     nodes = topology['nodes']
     edges = topology['edges']
     node_map = {n['id']: n for n in nodes}
-    config_map = {cfg['name']: cfg for cfg in router_configs}
-    
-    def normalize_interface(iface_str):
-        """Normaliza nombres de interfaces"""
-        if not iface_str:
-            return None
-        if '.' in iface_str:
-            iface_str = iface_str.split('.')[0]
-        iface_lower = iface_str.lower().strip()
-        if 'interface ' in iface_lower:
-            iface_str = iface_str.replace('interface ', '').replace('Interface ', '')
-            iface_lower = iface_lower.replace('interface ', '')
-        if iface_lower.startswith('fa'):
-            return 'FastEthernet' + iface_str[2:]
-        elif iface_lower.startswith('gi'):
-            return 'GigabitEthernet' + iface_str[2:]
-        elif iface_lower.startswith('eth') or iface_lower.startswith('e'):
-            if iface_lower.startswith('eth'):
-                return 'Ethernet' + iface_str[3:]
-            else:
-                return 'Ethernet' + iface_str[1:]
-        elif iface_lower.startswith('vlan'):
-            return None
-        return iface_str
-    
-    def extract_interfaces_from_config(device_name):
-        """Extrae interfaces usadas de la configuración"""
-        used = set()
-        config = config_map.get(device_name)
-        if not config:
-            return used
-        for line in config['config']:
-            line_lower = line.lower().strip()
-            if line_lower.startswith('int ') or line_lower.startswith('interface '):
-                parts = line.split()
-                if len(parts) >= 2:
-                    iface_normalized = normalize_interface(parts[1])
-                    if iface_normalized:
-                        used.add(iface_normalized)
-        return used
-    
-    used_interfaces = {}
-    for node in nodes:
-        device_name = node['data']['name']
-        used_interfaces[device_name] = extract_interfaces_from_config(device_name)
-    
-    def get_next_available_interface(device_name, device_type):
-        """Obtiene siguiente interfaz disponible"""
-        available = get_available_interfaces_for_device(device_type)
-        for iface in available:
-            if iface not in used_interfaces[device_name]:
-                used_interfaces[device_name].add(iface)
-                return iface
-        return None
     
     # Transformar coordenadas de vis.network a Packet Tracer
     coordinate_transform = transform_coordinates_to_ptbuilder(nodes)
@@ -258,29 +271,45 @@ def generate_ptbuilder_script(topology, router_configs, computers):
             lines.append(f'addModule("{device_name}", "0/0", "WIC-1ENET");')
             lines.append(f'addModule("{device_name}", "0/1", "WIC-1ENET");')
             lines.append(f'addModule("{device_name}", "0/2", "WIC-1ENET");')
+            lines.append(f'addModule("{device_name}", "0/3", "WIC-1ENET");')
     
     lines.append("")
     
+    # Procesar conexiones usando interfaces ya asignadas en el frontend
     for edge in edges:
         from_node = node_map.get(edge['from'])
         to_node = node_map.get(edge['to'])
         if not from_node or not to_node:
             continue
+        
         from_name = from_node['data']['name']
         to_name = to_node['data']['name']
-        from_type = from_node['data']['type']
-        to_type = to_node['data']['type']
-        from_iface = get_next_available_interface(from_name, from_type)
-        to_iface = get_next_available_interface(to_name, to_type)
-        if from_iface and to_iface:
+        
+        # Obtener interfaces directamente del edge data
+        if 'data' in edge and 'fromInterface' in edge['data'] and 'toInterface' in edge['data']:
+            from_iface_data = edge['data']['fromInterface']
+            to_iface_data = edge['data']['toInterface']
+            
+            # Construir nombre completo de interfaz
+            from_iface = f"{from_iface_data['type']}{from_iface_data['number']}"
+            to_iface = f"{to_iface_data['type']}{to_iface_data['number']}"
+            
             lines.append(f'addLink("{from_name}", "{from_iface}", "{to_name}", "{to_iface}", "straight");')
+        else:
+            print(f"⚠️ Advertencia: Conexión sin interfaces definidas entre {from_name} y {to_name}")
     
     lines.append("")
     
+    # Generar configuraciones para cada dispositivo (routers, switches, switch cores)
     for router_config in router_configs:
         device_name = router_config['name']
         config_lines = router_config['config']
-        config_text = "\\n".join([line for line in config_lines if line.strip()])
+        
+        # Reformatear configuración para PTBuilder (agregar exit\nenable\nconf t antes de cada interfaz)
+        formatted_config = format_config_for_ptbuilder(config_lines)
+        
+        # Convertir a string con \n como separador
+        config_text = "\\n".join([line for line in formatted_config if line.strip()])
         config_text = config_text.replace('"', '\\"')
         lines.append(f'configureIosDevice("{device_name}", "{config_text}");')
     
