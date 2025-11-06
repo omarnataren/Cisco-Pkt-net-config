@@ -1226,28 +1226,20 @@
             
             console.log('Nombre generado:', `PC${pcCount}`);
             
-            // Llenar select de VLANs
+            // Llenar select de VLANs - USAR ARRAY VLANS DIRECTAMENTE
             const vlanSelect = document.getElementById('new-pc-vlan');
             vlanSelect.innerHTML = '<option value="">-- Selecciona VLAN --</option>';
             
-            const vlanListElement = document.getElementById('vlan-list');
-            console.log('vlan-list element:', vlanListElement);
-            
-            if (!vlanListElement) {
-                showNotification('No se encontró la lista de VLANs. Asegúrate de haber creado VLANs primero.', 'error');
-                return;
-            }
-            
-            const allVlans = vlanListElement.children;
-            console.log('VLANs encontradas:', allVlans.length);
-            
-            if (allVlans.length === 0) {
+            if (vlans.length === 0) {
                 showNotification('No hay VLANs creadas. Crea VLANs primero.', 'error');
                 return;
             }
             
-            for (let i = 0; i < allVlans.length; i++) {
-                const vlanName = allVlans[i].textContent.replace('×', '').trim();
+            console.log('VLANs encontradas:', vlans.length);
+            
+            // Usar directamente el array vlans, no parsear el HTML
+            for (let i = 0; i < vlans.length; i++) {
+                const vlanName = vlans[i].name; // Solo el nombre, sin el prefijo
                 const option = document.createElement('option');
                 option.value = vlanName;
                 option.textContent = vlanName;
