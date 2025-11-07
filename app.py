@@ -110,6 +110,71 @@ def expand_interface_type(short_type):
     }
     return interface_map.get(short_type, short_type)
 
+def expand_interface_range(iface_type, range_str):
+    """
+    Expande un rango de interfaces en una lista de nombres completos para PTBuilder
+    
+    Esta función toma un tipo de interfaz abreviado y un rango (ej: "0/1-3") y lo
+    convierte en una lista de nombres completos de interfaces para usar en addLink().
+    
+    Args:
+        iface_type (str): Tipo de interfaz abreviado ('fa', 'gi', 'eth')
+        range_str (str): Rango de interfaces en formato "0/1-3" o interfaz única "0/1"
+    
+    Returns:
+        list: Lista de nombres completos de interfaces
+        
+    Ejemplos:
+        >>> expand_interface_range('fa', '0/1-3')
+        ['FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3']
+        
+        >>> expand_interface_range('gi', '1/0/1-4')
+        ['GigabitEthernet1/0/1', 'GigabitEthernet1/0/2', 'GigabitEthernet1/0/3', 'GigabitEthernet1/0/4']
+        
+        >>> expand_interface_range('fa', '0/1')
+        ['FastEthernet0/1']
+    """
+    # Expandir el tipo corto a nombre completo
+    type_full = expand_interface_type(iface_type)
+    
+    # Verificar si es un rango (contiene "-") o interfaz única
+    if '-' in range_str:
+        # Rango: "0/1-3" o "1/0/1-4"
+        # Separar el último "/" para obtener el rango numérico
+        parts = range_str.rsplit('/', 1)
+        
+        if len(parts) != 2:
+            # Si no se puede parsear, retornar como está
+            return [f"{type_full}{range_str}"]
+        
+        prefix = parts[0]  # "0" o "1/0"
+        numbers = parts[1]  # "1-3"
+        
+        # Separar inicio y fin del rango
+        if '-' not in numbers:
+            return [f"{type_full}{range_str}"]
+        
+        range_parts = numbers.split('-')
+        if len(range_parts) != 2:
+            return [f"{type_full}{range_str}"]
+        
+        try:
+            start = int(range_parts[0])
+            end = int(range_parts[1])
+        except ValueError:
+            # Si no son números, retornar como está
+            return [f"{type_full}{range_str}"]
+        
+        # Generar lista de interfaces
+        interfaces = []
+        for num in range(start, end + 1):
+            interfaces.append(f"{type_full}{prefix}/{num}")
+        
+        return interfaces
+    else:
+        # Interfaz única: "0/1"
+        return [f"{type_full}{range_str}"]
+
 def transform_coordinates_to_ptbuilder(nodes, scale_factor=1.0):
     """
     Transforma coordenadas de vis.network manteniendo la relación real entre dispositivos.
@@ -272,10 +337,12 @@ def format_config_for_ptbuilder(config_lines):
             if inside_dhcp_pool:
                 formatted.append(line)
                 inside_dhcp_pool = False
-            # Si estamos dentro de una interfaz, ya lo agregamos automáticamente
-            elif found_first_interface and needs_exit_before_next:
-                # Ya lo agregamos automáticamente, no duplicar
-                continue
+                needs_exit_before_next = False
+            # Si estamos dentro de una interfaz range (EtherChannel), este exit es válido
+            elif needs_exit_before_next:
+                # Este es el exit del interface range, mantenerlo pero marcar que ya salimos
+                formatted.append(line)
+                needs_exit_before_next = False
             else:
                 # Exit normal (ej: al final de toda la config)
                 formatted.append(line)
@@ -359,13 +426,42 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         from_name = from_node['data']['name']
         to_name = to_node['data']['name']
         
-        # Obtener interfaces directamente del edge data
-        if 'data' in edge and 'fromInterface' in edge['data'] and 'toInterface' in edge['data']:
+        # ✅ VERIFICAR SI ES ETHERCHANNEL
+        if 'data' in edge and 'etherChannel' in edge.get('data', {}):
+            # Es un EtherChannel - generar múltiples cables físicos
+            ec_data = edge['data']['etherChannel']
+            
+            print(f"\n🔗 ETHERCHANNEL: {from_name} → {to_name}")
+            print(f"   Protocolo: {ec_data.get('protocol', 'N/A')}")
+            print(f"   Grupo: {ec_data.get('group', 'N/A')}")
+            print(f"   From Range: {ec_data.get('fromType', 'N/A')} {ec_data.get('fromRange', 'N/A')}")
+            print(f"   To Range: {ec_data.get('toType', 'N/A')} {ec_data.get('toRange', 'N/A')}")
+            
+            # Expandir rangos de interfaces
+            from_interfaces = expand_interface_range(
+                ec_data.get('fromType', 'fa'), 
+                ec_data.get('fromRange', '0/1')
+            )
+            to_interfaces = expand_interface_range(
+                ec_data.get('toType', 'fa'), 
+                ec_data.get('toRange', '0/1')
+            )
+            
+            print(f"   Interfaces expandidas FROM: {from_interfaces}")
+            print(f"   Interfaces expandidas TO: {to_interfaces}")
+            
+            # Generar un addLink por cada par de interfaces del bundle
+            for from_if, to_if in zip(from_interfaces, to_interfaces):
+                lines.append(f'addLink("{from_name}", "{from_if}", "{to_name}", "{to_if}", "straight");')
+                print(f"   ✅ Cable generado: {from_if} ↔ {to_if}")
+        
+        # Conexión normal (no es EtherChannel)
+        elif 'data' in edge and 'fromInterface' in edge['data'] and 'toInterface' in edge['data']:
             from_iface_data = edge['data']['fromInterface']
             to_iface_data = edge['data']['toInterface']
             
             # DEBUG: Mostrar datos separados antes de construir nombre completo
-            print(f"\n🔗 CONEXIÓN: {from_name} → {to_name}")
+            print(f"\n🔗 CONEXIÓN NORMAL: {from_name} → {to_name}")
             print(f"   Edge ID: {edge.get('id')}")
             print(f"   Edge Data completo: {edge['data']}")
            
@@ -1177,7 +1273,7 @@ def handle_visual_topology(topology):
             name = switch['data']['name']
             switch_id = switch['id']
             
-            config_lines.append(f"{name}")
+            # NO agregar el nombre del dispositivo aquí - PTBuilder ya lo tiene en configureIosDevice()
             config_lines.append("enable")
             config_lines.append("conf t")
             config_lines.append(f"Hostname {name}")
