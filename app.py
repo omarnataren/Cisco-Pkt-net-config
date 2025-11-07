@@ -259,6 +259,7 @@ def format_config_for_ptbuilder(config_lines):
     found_first_interface = False
     needs_exit_before_next = False
     inside_dhcp_pool = False
+    last_was_exit = False  # Rastrear si el último comando fue exit
     
     for line in config_lines:
         line_stripped = line.strip()
@@ -283,6 +284,7 @@ def format_config_for_ptbuilder(config_lines):
             # Solo agregar exit\nenable\nconf t si estábamos dentro de algo
             # Si no, simplemente agregar la línea (ya estamos en conf t)
             formatted.append(line)
+            last_was_exit = False
         
         # Detectar inicio de pool DHCP
         elif line_lower.startswith('ip dhcp pool'):
@@ -290,6 +292,7 @@ def format_config_for_ptbuilder(config_lines):
             # (ya está agregado arriba)
             formatted.append(line)
             inside_dhcp_pool = True
+            last_was_exit = False
             
         # Detectar inicio de configuración de interfaz
         elif line_lower.startswith('int ') or line_lower.startswith('interface '):
@@ -299,11 +302,13 @@ def format_config_for_ptbuilder(config_lines):
                 formatted.append('enable')
                 formatted.append('conf t')
                 inside_dhcp_pool = False
+                last_was_exit = False
             
             # Antes de cada interfaz, agregar exit\nenable\nconf t
             if not found_first_interface:
-                # Primera interfaz: agregar exit después del hostname/enable secret
-                formatted.append('exit')
+                # Primera interfaz: agregar exit SOLO si no acabamos de salir
+                if not last_was_exit:
+                    formatted.append('exit')
                 found_first_interface = True
             else:
                 # Interfaces subsiguientes: agregar exit solo si estábamos dentro de una interfaz
@@ -315,6 +320,7 @@ def format_config_for_ptbuilder(config_lines):
             formatted.append('conf t')
             formatted.append(line)
             needs_exit_before_next = True
+            last_was_exit = False
             
         # Detectar comandos de routing que van después de todas las interfaces
         elif line_lower.startswith('ip route') or line_lower.startswith('ipv6 route'):
@@ -330,6 +336,7 @@ def format_config_for_ptbuilder(config_lines):
                 formatted.append('exit')
                 needs_exit_before_next = False
             formatted.append(line)
+            last_was_exit = False
             
         # Detectar 'exit' 
         elif line_lower == 'exit':
@@ -344,11 +351,15 @@ def format_config_for_ptbuilder(config_lines):
                 formatted.append(line)
                 needs_exit_before_next = False
             else:
-                # Exit normal (ej: al final de toda la config)
+                # Exit normal (ej: al final de toda la config o después de VLANs)
                 formatted.append(line)
+            
+            # Marcar que acabamos de procesar un exit
+            last_was_exit = True
             
         else:
             formatted.append(line)
+            last_was_exit = False
     
     return formatted
 
@@ -1328,8 +1339,10 @@ def handle_visual_topology(topology):
                 config_lines.append(f"vlan {vlan_num}")
                 config_lines.append(f" name {vlan_name.lower()}")
             
-            config_lines.append("exit")
-            config_lines.append("")
+            # Solo agregar exit si hay VLANs creadas
+            if vlans_used:
+                config_lines.append("exit")
+                config_lines.append("")
             
             # Configurar puerto trunk hacia switch core, router u otro switch
             etherchannel_configs = []
