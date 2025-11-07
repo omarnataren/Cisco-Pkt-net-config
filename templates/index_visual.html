@@ -1386,6 +1386,29 @@
         }
 
         /**
+         * Actualiza la lista de puertos disponibles para agregar PC
+         */
+        function updateNewPcPortList() {
+            const typeSelect = document.getElementById('new-pc-port-type');
+            const portSelect = document.getElementById('new-pc-port-number');
+            const selectedType = typeSelect.value;
+            
+            // Limpiar opciones previas
+            portSelect.innerHTML = '<option value="">Seleccionar interfaz...</option>';
+            
+            // Agregar interfaces del tipo seleccionado
+            const interfaces = interfaceData[selectedType] || [];
+            const typeName = interfaceTypeNames[selectedType] || '';
+            
+            interfaces.forEach(ifaceNumber => {
+                const option = document.createElement('option');
+                option.value = ifaceNumber;  // ✅ Solo el número (ej: "0/1" o "1/0/1")
+                option.textContent = typeName + ifaceNumber;  // Para mostrar (ej: "FastEthernet0/1" o "GigabitEthernet1/0/1")
+                portSelect.appendChild(option);
+            });
+        }
+
+        /**
          * Alterna entre campos normales y EtherChannel en modal de NUEVA conexión
          * Valida que ambos nodos seleccionados sean switches
          */
@@ -1710,8 +1733,8 @@
                 vlanSelect.appendChild(option);
             }
             
-            // Limpiar otros campos
-            document.getElementById('new-pc-port-number').value = '';
+            // Inicializar lista de puertos
+            updateNewPcPortList();
             
             console.log('Abriendo modal...');
             document.getElementById('add-computer-modal').style.display = 'block';
@@ -1735,19 +1758,12 @@
             }
             
             if (!portNumber) {
-                showNotification('Ingresa el puerto del switch', 'error');
+                showNotification('Selecciona el puerto del switch', 'error');
                 return;
             }
             
             if (!vlan) {
                 showNotification('Selecciona una VLAN', 'error');
-                return;
-            }
-            
-            // Validar formato de puerto
-            const portPattern = /^\d+\/\d+$/;
-            if (!portPattern.test(portNumber)) {
-                showNotification('Formato de puerto inválido. Usa formato: 0/1', 'error');
                 return;
             }
             
