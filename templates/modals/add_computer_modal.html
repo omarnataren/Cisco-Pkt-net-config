@@ -14,11 +14,13 @@
             <div class="input-group">
                 <label>Puerto del Switch</label>
                 <div style="display: flex; gap: 10px;">
-                    <select id="new-pc-port-type" style="flex: 0 0 120px;">
+                    <select id="new-pc-port-type" onchange="updateNewPcPortList()" style="flex: 0 0 120px;">
                         <option value="fa">FastEthernet</option>
                         <option value="gi">GigabitEthernet</option>
                     </select>
-                    <input type="text" id="new-pc-port-number" placeholder="0/1" style="flex: 1;">
+                    <select id="new-pc-port-number" style="flex: 1;">
+                        <option value="">Seleccionar interfaz...</option>
+                    </select>
                 </div>
             </div>
             

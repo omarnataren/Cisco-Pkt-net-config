@@ -169,17 +169,13 @@ def transform_coordinates_to_ptbuilder(nodes, scale_factor=1.0):
 
 def format_config_for_ptbuilder(config_lines):
     """
-    Formatea la configuración para PTBuilder agregando exit\nenable\nconf t antes de cada interfaz y después de cada pool DHCP.
+    Formatea la configuración para PTBuilder de forma simplificada.
     
-    PTBuilder requiere que cada comando de interfaz esté precedido por:
-    exit\nenable\nconf t\n
-    
-    Y después de cada pool DHCP también necesita:
-    exit\nenable\nconf t\n
-    
-    Ejemplo:
-        Entrada: ["R2", "enable", "conf t", "Hostname R2", "Enable secret cisco", "int fa0/0", "ip add ...", "no shut"]
-        Salida: ["R2", "enable", "conf t", "Hostname R2", "Enable secret cisco", "exit", "enable", "conf t", "int fa0/0", "ip add ...", "no shut", "exit", ...]
+    PTBuilder necesita:
+    - exit\nenable\nconf t antes de cada interfaz
+    - Mantener la estructura de DHCP pools con sus exits
+    - Mantener el exit que viene antes de ip route (para salir del pool DHCP)
+    - UN SOLO exit al final de toda la configuración
     
     Args:
         config_lines (list): Lista de líneas de configuración
@@ -195,34 +191,26 @@ def format_config_for_ptbuilder(config_lines):
     needs_exit_before_next = False
     inside_dhcp_pool = False
     
-    for line in config_lines:
+    # Pre-analizar para detectar si hay ip route después de un exit
+    has_ip_route = any(line.strip().lower().startswith('ip route') for line in config_lines)
+    
+    for i, line in enumerate(config_lines):
         line_stripped = line.strip()
         line_lower = line_stripped.lower()
         
-        # Detectar ip dhcp excluded-address (debe ir antes del pool)
+        # Detectar ip dhcp excluded-address
         if line_lower.startswith('ip dhcp excluded-address'):
-            # Si salimos de un pool DHCP previo, agregar exit\nenable\nconf t
-            if inside_dhcp_pool:
-                formatted.append('exit')
-                formatted.append('enable')
-                formatted.append('conf t')
-                inside_dhcp_pool = False
-            
-            # Salir de interfaz si estamos dentro
-            elif needs_exit_before_next:
+            # Si estamos en interfaz, salir primero
+            if needs_exit_before_next:
                 formatted.append('exit')
                 needs_exit_before_next = False
                 formatted.append('enable')
                 formatted.append('conf t')
             
-            # Solo agregar exit\nenable\nconf t si estábamos dentro de algo
-            # Si no, simplemente agregar la línea (ya estamos en conf t)
             formatted.append(line)
         
         # Detectar inicio de pool DHCP
         elif line_lower.startswith('ip dhcp pool'):
-            # NO agregar exit\nenable\nconf t si acabamos de hacer excluded-address
-            # (ya está agregado arriba)
             formatted.append(line)
             inside_dhcp_pool = True
             
@@ -251,37 +239,34 @@ def format_config_for_ptbuilder(config_lines):
             formatted.append(line)
             needs_exit_before_next = True
             
-        # Detectar comandos de routing que van después de todas las interfaces
-        elif line_lower.startswith('ip route') or line_lower.startswith('ipv6 route'):
-            # Si salimos de un pool DHCP, agregar exit\nenable\nconf t
-            if inside_dhcp_pool:
-                formatted.append('exit')
-                formatted.append('enable')
-                formatted.append('conf t')
-                inside_dhcp_pool = False
-            
-            # Salir de la última interfaz si estábamos dentro
-            if needs_exit_before_next:
-                formatted.append('exit')
-                needs_exit_before_next = False
-            formatted.append(line)
-            
-        # Detectar 'exit' 
+        # Detectar 'exit' que viene de la configuración original
         elif line_lower == 'exit':
             # Si estamos dentro de un pool DHCP, este exit es para salir del pool
             if inside_dhcp_pool:
                 formatted.append(line)
                 inside_dhcp_pool = False
-            # Si estamos dentro de una interfaz, ya lo agregamos automáticamente
-            elif found_first_interface and needs_exit_before_next:
-                # Ya lo agregamos automáticamente, no duplicar
-                continue
-            else:
-                # Exit normal (ej: al final de toda la config)
-                formatted.append(line)
+            # Si el siguiente comando (no vacío) es 'ip route', mantener este exit
+            elif has_ip_route and i + 1 < len(config_lines):
+                # Buscar la siguiente línea no vacía
+                next_non_empty = None
+                for j in range(i + 1, len(config_lines)):
+                    next_line = config_lines[j].strip()
+                    if next_line:
+                        next_non_empty = next_line.lower()
+                        break
+                
+                # Si la siguiente línea no vacía es 'ip route', mantener el exit
+                if next_non_empty and next_non_empty.startswith('ip route'):
+                    formatted.append(line)
+                # Si no, ignorar este exit (ya se maneja automáticamente)
+            # Ignorar otros exits intermedios
             
         else:
+            # Cualquier otro comando (ip route, etc.) se agrega directamente
             formatted.append(line)
+    
+    # Agregar UN SOLO exit al final de toda la configuración
+    formatted.append('exit')
     
     return formatted
 
@@ -841,7 +826,7 @@ def handle_visual_topology(topology):
             # Obtener edges del router (búsqueda O(1))
             router_edges = edges_by_node.get(router_id, [])
             backbone_interfaces = []
-            switch_connection = None
+            switch_connections = []  # ✅ Cambiar a lista para soportar múltiples switches
             
             for edge in router_edges:
                 is_from = edge['from'] == router_id
@@ -854,14 +839,15 @@ def handle_visual_topology(topology):
                 target_name = target_node['data']['name']
                 target_type = target_node['data']['type']
                 
-                # Detectar conexión a switch normal
-                if target_type == 'switch':
-                    switch_connection = {
+                # Detectar conexión a switch normal o switch core
+                if target_type in ['switch', 'switch_core']:
+                    switch_connections.append({
                         'switch_id': target_id,
                         'switch_name': target_name,
+                        'switch_type': target_type,
                         'edge': edge,
                         'is_from': is_from
-                    }
+                    })
                 
                 # Configurar backbone
                 if edge['id'] in edge_ips:
@@ -891,45 +877,42 @@ def handle_visual_topology(topology):
                         'is_from': is_from
                     })
             
-            # Si hay conexión a switch, configurar subinterfaces para VLANs
+            # Si hay conexión a switch(es), configurar subinterfaces para VLANs
             assigned_vlans = []
-            if switch_connection:
-                edge = switch_connection['edge']
-                is_from = switch_connection['is_from']
-                iface_data = edge['data']['fromInterface'] if is_from else edge['data']['toInterface']
-                #Aquí el type le agrega Fa
-                iface_full = f"{iface_data['type']}{iface_data['number']}"
+            
+            # Verificar si hay AL MENOS UN switch normal conectado
+            has_normal_switches = False
+            if switch_connections:
+                has_normal_switches = any(
+                    sc['switch_type'] == 'switch' for sc in switch_connections
+                )
+            
+            # Si hay AL MENOS UN switch normal, generar TODAS las VLANs
+            # (sin importar si también hay switch_core conectado)
+            if has_normal_switches and switch_connections:
+                # Usar la primera conexión a un SWITCH NORMAL (no switch_core)
+                first_normal_switch = None
+                for sc in switch_connections:
+                    if sc['switch_type'] == 'switch':
+                        first_normal_switch = sc
+                        break
                 
-                # Obtener VLANs del switch conectado (búsqueda O(1))
-                switch_id = switch_connection['switch_id']
-                switch_edges = edges_by_node.get(switch_id, [])
-                
-                vlans_used = set()
-                # for se in switch_edges:
-                #     other_id = se['to'] if se['from'] == switch_id else se['from']
-                #     comp = node_map.get(other_id)
-                #     if comp and comp['data']['type'] == 'computer' and comp['data'].get('vlan'):
-                #         vlans_used.add(comp['data']['vlan'])
-                
-                # Detectar computadoras del sistema nuevo (almacenadas en switch.data.computers)
-                switch_node = node_map.get(switch_id)
-                if switch_node and 'computers' in switch_node['data']:
-                    for pc in switch_node['data']['computers']:
-                        if pc.get('vlan'):
-                            vlans_used.add(pc['vlan'])
-
-                # Configurar interfaz principal
-                config_lines.append(f"int {iface_full}")
-                config_lines.append("no shut")
-                
-                # Configurar subinterfaces
-                for vlan_name in sorted(vlans_used):
-                    vlan_num = ''.join(filter(str.isdigit, vlan_name))
-                    if vlan_num:
-                        # Buscar info de VLAN (búsqueda O(1))
-                        vlan_info = vlan_map.get(vlan_name)
-                        if vlan_info:
-                            prefix = int(vlan_info['prefix'])
+                if first_normal_switch:
+                    edge = first_normal_switch['edge']
+                    is_from = first_normal_switch['is_from']
+                    iface_data = edge['data']['fromInterface'] if is_from else edge['data']['toInterface']
+                    iface_full = f"{iface_data['type']}{iface_data['number']}"
+                    
+                    # Configurar interfaz principal
+                    config_lines.append(f"int {iface_full}")
+                    config_lines.append("no shut")
+                    
+                    # Generar subinterfaces para TODAS las VLANs definidas globalmente
+                    for vlan in vlans:
+                        vlan_name = vlan['name']
+                        vlan_num = ''.join(filter(str.isdigit, vlan_name))
+                        if vlan_num:
+                            prefix = int(vlan['prefix'])
                             # Generar red
                             blocks = generate_blocks(base, prefix, 1, used)
                             if blocks:
@@ -951,11 +934,12 @@ def handle_visual_topology(topology):
                                     'interface_name': iface_data['type'],
                                     'interface_number': iface_data['number']
                                 })
-                
-                config_lines.append("exit")
-                config_lines.append("")
-                
-                # Configurar DHCP pools
+                    
+                    config_lines.append("exit")
+                    config_lines.append("")
+            
+            # Configurar DHCP pools para TODAS las VLANs asignadas
+            if assigned_vlans:
                 for vlan_data in assigned_vlans:
                     network = vlan_data['network']
                     hosts = list(network.hosts())
@@ -971,8 +955,7 @@ def handle_visual_topology(topology):
                     config_lines.append("exit")  # IMPORTANTE: Salir del pool DHCP
                     config_lines.append("")
             
-            config_lines.append("exit")
-            config_lines.append("")
+            # NO agregar exit aquí - format_config_for_ptbuilder() lo agregará al final
             
             # Agregar config a la lista
             router_configs.append({
@@ -1117,6 +1100,32 @@ def handle_visual_topology(topology):
                 from logic import generate_etherchannel_config
                 ec_commands = generate_etherchannel_config(ec_config['data'], ec_config['is_from'])
                 config_lines.extend(ec_commands)
+            
+            # Configurar puertos de acceso para computadoras conectadas al switch core
+            computer_ports_swc = []
+            
+            # Procesar computadoras del sistema nuevo (almacenadas en el switch core)
+            if 'computers' in swc['data']:
+                for pc in swc['data']['computers']:
+                    vlan_name = pc.get('vlan')
+                    if vlan_name:
+                        vlan_num = ''.join(filter(str.isdigit, vlan_name))
+                        if vlan_num:
+                            # Expandir tipo de interfaz (fa -> FastEthernet, gi -> GigabitEthernet)
+                            port_type_full = expand_interface_type(pc['portType'])
+                            port_full = f"{port_type_full}{pc['portNumber']}"
+                            computer_ports_swc.append({
+                                'interface': port_full,
+                                'vlan': vlan_num,
+                                'computer': pc['name']
+                            })
+            
+            # Agregar configuración de puertos de acceso para PCs
+            for port in computer_ports_swc:
+                config_lines.append(f"interface {port['interface']}")
+                config_lines.append(f" switchport access vlan {port['vlan']}")
+                config_lines.append(" no shutdown")
+                config_lines.append("")
             
             # Configurar SVIs y DHCP
             assigned_vlans = []
@@ -1314,8 +1323,22 @@ def handle_visual_topology(topology):
                 route_commands = generate_static_routes_commands(routes)
                 
                 if route_commands:
-                    # Agregar rutas antes del último exit
+                    # Agregar rutas al final de la configuración
                     config = router['config']
+                    
+                    # Verificar si la última línea no vacía es 'exit'
+                    # Si ya existe exit, no agregarlo nuevamente
+                    last_non_empty = None
+                    for line in reversed(config):
+                        if line.strip():
+                            last_non_empty = line.strip().lower()
+                            break
+                    
+                    # Si route_commands comienza con 'exit' y config ya termina con 'exit',
+                    # eliminar el exit de route_commands para evitar duplicación
+                    if last_non_empty == 'exit' and route_commands[0].strip().lower() == 'exit':
+                        route_commands = route_commands[1:]  # Eliminar el primer exit
+                    
                     config = config + [""] + route_commands
                     router['config'] = config
                     router['routes'] = routes
