@@ -169,9 +169,12 @@ def transform_coordinates_to_ptbuilder(nodes, scale_factor=1.0):
 
 def format_config_for_ptbuilder(config_lines):
     """
-    Formatea la configuración para PTBuilder agregando exit\nenable\nconf t antes de cada interfaz.
+    Formatea la configuración para PTBuilder agregando exit\nenable\nconf t antes de cada interfaz y después de cada pool DHCP.
     
     PTBuilder requiere que cada comando de interfaz esté precedido por:
+    exit\nenable\nconf t\n
+    
+    Y después de cada pool DHCP también necesita:
     exit\nenable\nconf t\n
     
     Ejemplo:
@@ -190,13 +193,48 @@ def format_config_for_ptbuilder(config_lines):
     formatted = []
     found_first_interface = False
     needs_exit_before_next = False
+    inside_dhcp_pool = False
     
     for line in config_lines:
         line_stripped = line.strip()
         line_lower = line_stripped.lower()
         
+        # Detectar ip dhcp excluded-address (debe ir antes del pool)
+        if line_lower.startswith('ip dhcp excluded-address'):
+            # Si salimos de un pool DHCP previo, agregar exit\nenable\nconf t
+            if inside_dhcp_pool:
+                formatted.append('exit')
+                formatted.append('enable')
+                formatted.append('conf t')
+                inside_dhcp_pool = False
+            
+            # Salir de interfaz si estamos dentro
+            elif needs_exit_before_next:
+                formatted.append('exit')
+                needs_exit_before_next = False
+                formatted.append('enable')
+                formatted.append('conf t')
+            
+            # Solo agregar exit\nenable\nconf t si estábamos dentro de algo
+            # Si no, simplemente agregar la línea (ya estamos en conf t)
+            formatted.append(line)
+        
+        # Detectar inicio de pool DHCP
+        elif line_lower.startswith('ip dhcp pool'):
+            # NO agregar exit\nenable\nconf t si acabamos de hacer excluded-address
+            # (ya está agregado arriba)
+            formatted.append(line)
+            inside_dhcp_pool = True
+            
         # Detectar inicio de configuración de interfaz
-        if line_lower.startswith('int ') or line_lower.startswith('interface '):
+        elif line_lower.startswith('int ') or line_lower.startswith('interface '):
+            # Si salimos de un pool DHCP, agregar exit\nenable\nconf t
+            if inside_dhcp_pool:
+                formatted.append('exit')
+                formatted.append('enable')
+                formatted.append('conf t')
+                inside_dhcp_pool = False
+            
             # Antes de cada interfaz, agregar exit\nenable\nconf t
             if not found_first_interface:
                 # Primera interfaz: agregar exit después del hostname/enable secret
@@ -215,16 +253,32 @@ def format_config_for_ptbuilder(config_lines):
             
         # Detectar comandos de routing que van después de todas las interfaces
         elif line_lower.startswith('ip route') or line_lower.startswith('ipv6 route'):
+            # Si salimos de un pool DHCP, agregar exit\nenable\nconf t
+            if inside_dhcp_pool:
+                formatted.append('exit')
+                formatted.append('enable')
+                formatted.append('conf t')
+                inside_dhcp_pool = False
+            
             # Salir de la última interfaz si estábamos dentro
             if needs_exit_before_next:
                 formatted.append('exit')
                 needs_exit_before_next = False
             formatted.append(line)
             
-        # Detectar 'exit' al final de sección de interfaces
-        elif line_lower == 'exit' and found_first_interface and needs_exit_before_next:
-            # Ya lo agregamos automáticamente, no duplicar
-            continue
+        # Detectar 'exit' 
+        elif line_lower == 'exit':
+            # Si estamos dentro de un pool DHCP, este exit es para salir del pool
+            if inside_dhcp_pool:
+                formatted.append(line)
+                inside_dhcp_pool = False
+            # Si estamos dentro de una interfaz, ya lo agregamos automáticamente
+            elif found_first_interface and needs_exit_before_next:
+                # Ya lo agregamos automáticamente, no duplicar
+                continue
+            else:
+                # Exit normal (ej: al final de toda la config)
+                formatted.append(line)
             
         else:
             formatted.append(line)
@@ -628,16 +682,23 @@ def handle_visual_topology(topology):
                 switch_cores.append(n)
         
         # Extraer computadoras del NUEVO SISTEMA (almacenadas en switches y switch_cores)
+        # Contador global para nombres únicos de PCs
+        pc_counter = 1
+        
         # Ya no buscamos nodos tipo 'computer', solo las almacenadas en data.computers
         for s in switches:
             mov_in_x = 0;
             if 'computers' in s['data']:
                 for pc in s['data']['computers']:
+                    # Generar nombre único global con contador
+                    unique_pc_name = f"PC{pc_counter}"
+                    pc_counter += 1
+                    
                     # Crear estructura compatible con el formato de nodo
                     pc_node = {
                         'id': f"{s['id']}_pc_{pc['name']}",  # ID único basado en el switch
                         'data': {
-                            'name': pc['name'],
+                            'name': unique_pc_name,  # Usar nombre único global
                             'type': 'computer',
                             'vlan': pc.get('vlan'),
                             'port': f"{pc['portType']}{pc['portNumber']}"
@@ -674,11 +735,15 @@ def handle_visual_topology(topology):
             mov_in_x = 0;
             if 'computers' in swc['data']:
                 for pc in swc['data']['computers']:
+                    # Generar nombre único global con contador
+                    unique_pc_name = f"PC{pc_counter}"
+                    pc_counter += 1
+                    
                     # Crear estructura compatible con el formato de nodo
                     pc_node = {
                         'id': f"{swc['id']}_pc_{pc['name']}",  # ID único basado en el switch core
                         'data': {
-                            'name': pc['name'],
+                            'name': unique_pc_name,  # Usar nombre único global
                             'type': 'computer',
                             'vlan': pc.get('vlan'),
                             'port': f"{pc['portType']}{pc['portNumber']}"
@@ -896,9 +961,14 @@ def handle_visual_topology(topology):
                     hosts = list(network.hosts())
                     vlan_num = vlan_data['termination']
                     
+                    # Excluded addresses ANTES del pool
+                    config_lines.append(f"ip dhcp excluded-address {hosts[0]} {hosts[9] if len(hosts) > 9 else hosts[-1]}")
+                    config_lines.append("")
+                    
                     config_lines.append(f"ip dhcp pool vlan{vlan_num}")
                     config_lines.append(f"network {network.network_address} {network.netmask}")
                     config_lines.append(f"default-router {vlan_data['gateway']}")
+                    config_lines.append("exit")  # IMPORTANTE: Salir del pool DHCP
                     config_lines.append("")
             
             config_lines.append("exit")
@@ -1039,6 +1109,7 @@ def handle_visual_topology(topology):
                         config_lines.append(f"interface {iface_full}")
                         config_lines.append(" switchport trunk encapsulation dot1Q")
                         config_lines.append(" switchport mode trunk")
+                        config_lines.append(" no shutdown")
                         config_lines.append("")
             
             # Configurar EtherChannels si existen
@@ -1085,14 +1156,11 @@ def handle_visual_topology(topology):
                 vlan_num = vlan_data['termination']
                 
                 config_lines.append(f"ip dhcp excluded-address {hosts[0]} {hosts[9] if len(hosts) > 9 else hosts[-1]}")
-                config_lines.append("")
                 config_lines.append(f"ip dhcp pool VLAN{vlan_num}")
                 config_lines.append(f" network {network.network_address} {network.netmask}")
                 config_lines.append(f" default-router {vlan_data['gateway']}")
                 config_lines.append(" dns-server 8.8.8.8")
-                config_lines.append("")
-            
-            config_lines.append("exit")
+                config_lines.append("exit")  # IMPORTANTE: Salir del pool DHCP
             
             router_configs.append({
                 'name': name,
@@ -1198,6 +1266,7 @@ def handle_visual_topology(topology):
                         
                         config_lines.append(f"int {iface_full}")
                         config_lines.append("switchport mode trunk")
+                        config_lines.append("no shutdown")
                         processed_edges.add(edge['id'])  # Marcar como procesado
             
             # Configurar EtherChannels si existen
@@ -1210,6 +1279,7 @@ def handle_visual_topology(topology):
             for port in computer_ports:
                 config_lines.append(f"int {port['interface']}")
                 config_lines.append(f"switchport access vlan {port['vlan']}")
+                config_lines.append("no shutdown")
             
             router_configs.append({
                 'name': name,
