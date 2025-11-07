@@ -693,9 +693,9 @@
                 document.getElementById('new-etherchannel-protocol').value = 'lacp';
                 document.getElementById('new-etherchannel-group').value = '1';
                 document.getElementById('new-etherchannel-from-type').value = 'fa';
-                document.getElementById('new-etherchannel-from-range').value = '';
+                document.getElementById('new-etherchannel-from-range').value = '0/1-3';
                 document.getElementById('new-etherchannel-to-type').value = 'fa';
-                document.getElementById('new-etherchannel-to-range').value = '';
+                document.getElementById('new-etherchannel-to-range').value = '0/1-3';
                 
                 // Mostrar campos normales y ocultar EtherChannel
                 document.getElementById('new-normal-fields').style.display = 'block';
@@ -881,9 +881,9 @@
             document.getElementById('new-etherchannel-protocol').value = 'lacp';
             document.getElementById('new-etherchannel-group').value = '1';
             document.getElementById('new-etherchannel-from-type').value = 'fa';
-            document.getElementById('new-etherchannel-from-range').innerHTML = '<option value="">Seleccionar interfaz...</option>';
+            document.getElementById('new-etherchannel-from-range').value = '0/1-3';
             document.getElementById('new-etherchannel-to-type').value = 'fa';
-            document.getElementById('new-etherchannel-to-range').innerHTML = '<option value="">Seleccionar interfaz...</option>';
+            document.getElementById('new-etherchannel-to-range').value = '0/1-3';
 
             // Mostrar campos normales y ocultar EtherChannel
             document.getElementById('new-normal-fields').style.display = 'block';
