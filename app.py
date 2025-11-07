@@ -90,8 +90,212 @@ def get_available_interfaces_for_device(device_type):
     }
     return interfaces.get(device_type, [])
 
+def expand_interface_type(short_type):
+    """
+    Convierte tipo de interfaz corto a nombre completo para PT Builder
+    
+    Args:
+        short_type (str): Tipo corto de interfaz ('fa', 'gi', 'eth')
+        
+    Returns:
+        str: Nombre completo de interfaz ('FastEthernet', 'GigabitEthernet', 'Ethernet')
+    """
+    interface_map = {
+        'fa': 'FastEthernet',
+        'gi': 'GigabitEthernet',
+        'eth': 'Ethernet',
+        'FastEthernet': 'FastEthernet',
+        'GigabitEthernet': 'GigabitEthernet',
+        'Ethernet': 'Ethernet'
+    }
+    return interface_map.get(short_type, short_type)
+
+def transform_coordinates_to_ptbuilder(nodes, scale_factor=1.0):
+    """
+    Transforma coordenadas de vis.network manteniendo la relación real entre dispositivos.
+    
+    La topología se centra en el espacio de Packet Tracer sin estirar para llenar todo el espacio.
+    Esto permite mantener las distancias relativas y permitir zoom en Packet Tracer.
+    
+    Rango de Packet Tracer: X: -7500 a 11500 | Y: -1600 a 5600
+    Centro de Packet Tracer: (2000, 2000)
+    
+    Args:
+        nodes: Lista de nodos con propiedades x, y
+        scale_factor: Factor de escala (default 1.0 = mantiene distancias de vis.network)
+        
+    Returns:
+        Diccionario con transformación: {node_id: {x, y}}
+    """
+    if not nodes:
+        return {}
+    
+    # Centro del espacio de Packet Tracer
+    PT_CENTER_X = 2000
+    PT_CENTER_Y = 2000
+    
+    # Calcular centro y rango de la topología actual en vis.network
+    x_coords = [node.get('x', 0) for node in nodes]
+    y_coords = [node.get('y', 0) for node in nodes]
+    
+    if not x_coords or not y_coords:
+        return {}
+    
+    x_min, x_max = min(x_coords), max(x_coords)
+    y_min, y_max = min(y_coords), max(y_coords)
+    
+    # Centro actual de la topología
+    topology_center_x = (x_min + x_max) / 2
+    topology_center_y = (y_min + y_max) / 2
+    
+    # Transformar cada nodo: centrar y aplicar escala
+    transformed = {}
+    for node in nodes:
+        node_id = node.get('id')
+        x_orig = node.get('x', 0)
+        y_orig = node.get('y', 0)
+        
+        # Desplazar al origen (restar el centro)
+        x_relative = (x_orig - topology_center_x) * scale_factor
+        y_relative = (y_orig - topology_center_y) * scale_factor
+        
+        # Mover al centro de Packet Tracer
+        x_pt = int(PT_CENTER_X + x_relative)
+        y_pt = int(PT_CENTER_Y + y_relative)
+        
+        transformed[node_id] = {'x': x_pt, 'y': y_pt}
+    
+    return transformed
+
+def format_config_for_ptbuilder(config_lines):
+    """
+    Formatea la configuración para PTBuilder agregando exit\nenable\nconf t antes de cada interfaz y después de cada pool DHCP.
+    
+    PTBuilder requiere que cada comando de interfaz esté precedido por:
+    exit\nenable\nconf t\n
+    
+    Y después de cada pool DHCP también necesita:
+    exit\nenable\nconf t\n
+    
+    Ejemplo:
+        Entrada: ["R2", "enable", "conf t", "Hostname R2", "Enable secret cisco", "int fa0/0", "ip add ...", "no shut"]
+        Salida: ["R2", "enable", "conf t", "Hostname R2", "Enable secret cisco", "exit", "enable", "conf t", "int fa0/0", "ip add ...", "no shut", "exit", ...]
+    
+    Args:
+        config_lines (list): Lista de líneas de configuración
+        
+    Returns:
+        list: Lista de líneas reformateadas para PTBuilder
+    """
+    if not config_lines:
+        return []
+    
+    formatted = []
+    found_first_interface = False
+    needs_exit_before_next = False
+    inside_dhcp_pool = False
+    
+    for line in config_lines:
+        line_stripped = line.strip()
+        line_lower = line_stripped.lower()
+        
+        # Detectar ip dhcp excluded-address (debe ir antes del pool)
+        if line_lower.startswith('ip dhcp excluded-address'):
+            # Si salimos de un pool DHCP previo, agregar exit\nenable\nconf t
+            if inside_dhcp_pool:
+                formatted.append('exit')
+                formatted.append('enable')
+                formatted.append('conf t')
+                inside_dhcp_pool = False
+            
+            # Salir de interfaz si estamos dentro
+            elif needs_exit_before_next:
+                formatted.append('exit')
+                needs_exit_before_next = False
+                formatted.append('enable')
+                formatted.append('conf t')
+            
+            # Solo agregar exit\nenable\nconf t si estábamos dentro de algo
+            # Si no, simplemente agregar la línea (ya estamos en conf t)
+            formatted.append(line)
+        
+        # Detectar inicio de pool DHCP
+        elif line_lower.startswith('ip dhcp pool'):
+            # NO agregar exit\nenable\nconf t si acabamos de hacer excluded-address
+            # (ya está agregado arriba)
+            formatted.append(line)
+            inside_dhcp_pool = True
+            
+        # Detectar inicio de configuración de interfaz
+        elif line_lower.startswith('int ') or line_lower.startswith('interface '):
+            # Si salimos de un pool DHCP, agregar exit\nenable\nconf t
+            if inside_dhcp_pool:
+                formatted.append('exit')
+                formatted.append('enable')
+                formatted.append('conf t')
+                inside_dhcp_pool = False
+            
+            # Antes de cada interfaz, agregar exit\nenable\nconf t
+            if not found_first_interface:
+                # Primera interfaz: agregar exit después del hostname/enable secret
+                formatted.append('exit')
+                found_first_interface = True
+            else:
+                # Interfaces subsiguientes: agregar exit solo si estábamos dentro de una interfaz
+                if needs_exit_before_next:
+                    formatted.append('exit')
+            
+            # Agregar enable\nconf t antes de la interfaz
+            formatted.append('enable')
+            formatted.append('conf t')
+            formatted.append(line)
+            needs_exit_before_next = True
+            
+        # Detectar comandos de routing que van después de todas las interfaces
+        elif line_lower.startswith('ip route') or line_lower.startswith('ipv6 route'):
+            # Si salimos de un pool DHCP, agregar exit\nenable\nconf t
+            if inside_dhcp_pool:
+                formatted.append('exit')
+                formatted.append('enable')
+                formatted.append('conf t')
+                inside_dhcp_pool = False
+            
+            # Salir de la última interfaz si estábamos dentro
+            if needs_exit_before_next:
+                formatted.append('exit')
+                needs_exit_before_next = False
+            formatted.append(line)
+            
+        # Detectar 'exit' 
+        elif line_lower == 'exit':
+            # Si estamos dentro de un pool DHCP, este exit es para salir del pool
+            if inside_dhcp_pool:
+                formatted.append(line)
+                inside_dhcp_pool = False
+            # Si estamos dentro de una interfaz, ya lo agregamos automáticamente
+            elif found_first_interface and needs_exit_before_next:
+                # Ya lo agregamos automáticamente, no duplicar
+                continue
+            else:
+                # Exit normal (ej: al final de toda la config)
+                formatted.append(line)
+            
+        else:
+            formatted.append(line)
+    
+    return formatted
+
 def generate_ptbuilder_script(topology, router_configs, computers):
-    """Genera script PTBuilder para crear topología en Packet Tracer"""
+    """
+    Genera script PTBuilder para crear topología en Packet Tracer
+    
+    Las coordenadas (x, y) de cada dispositivo se transforman del rango
+    de vis.network al rango de Packet Tracer, manteniendo la topología relativa.
+    PTBuilder usará estas coordenadas transformadas para crear los dispositivos.
+    
+    Las interfaces se obtienen directamente de edge['data']['fromInterface'] y 
+    edge['data']['toInterface'], ya que fueron asignadas automáticamente en el frontend.
+    """
     lines = []
     device_models = {
         'router': '2811',
@@ -103,67 +307,34 @@ def generate_ptbuilder_script(topology, router_configs, computers):
     nodes = topology['nodes']
     edges = topology['edges']
     node_map = {n['id']: n for n in nodes}
-    config_map = {cfg['name']: cfg for cfg in router_configs}
     
-    def normalize_interface(iface_str):
-        """Normaliza nombres de interfaces"""
-        if not iface_str:
-            return None
-        if '.' in iface_str:
-            iface_str = iface_str.split('.')[0]
-        iface_lower = iface_str.lower().strip()
-        if 'interface ' in iface_lower:
-            iface_str = iface_str.replace('interface ', '').replace('Interface ', '')
-            iface_lower = iface_lower.replace('interface ', '')
-        if iface_lower.startswith('fa'):
-            return 'FastEthernet' + iface_str[2:]
-        elif iface_lower.startswith('gi'):
-            return 'GigabitEthernet' + iface_str[2:]
-        elif iface_lower.startswith('eth') or iface_lower.startswith('e'):
-            if iface_lower.startswith('eth'):
-                return 'Ethernet' + iface_str[3:]
-            else:
-                return 'Ethernet' + iface_str[1:]
-        elif iface_lower.startswith('vlan'):
-            return None
-        return iface_str
+    # Transformar coordenadas de vis.network a Packet Tracer
+    coordinate_transform = transform_coordinates_to_ptbuilder(nodes)
     
-    def extract_interfaces_from_config(device_name):
-        """Extrae interfaces usadas de la configuración"""
-        used = set()
-        config = config_map.get(device_name)
-        if not config:
-            return used
-        for line in config['config']:
-            line_lower = line.lower().strip()
-            if line_lower.startswith('int ') or line_lower.startswith('interface '):
-                parts = line.split()
-                if len(parts) >= 2:
-                    iface_normalized = normalize_interface(parts[1])
-                    if iface_normalized:
-                        used.add(iface_normalized)
-        return used
-    
-    used_interfaces = {}
+    # DEBUG: Mostrar coordenadas transformadas
+    print("\n🔄 COORDENADAS TRANSFORMADAS AL RANGO DE PACKET TRACER:")
     for node in nodes:
-        device_name = node['data']['name']
-        used_interfaces[device_name] = extract_interfaces_from_config(device_name)
-    
-    def get_next_available_interface(device_name, device_type):
-        """Obtiene siguiente interfaz disponible"""
-        available = get_available_interfaces_for_device(device_type)
-        for iface in available:
-            if iface not in used_interfaces[device_name]:
-                used_interfaces[device_name].add(iface)
-                return iface
-        return None
+        node_id = node.get('id')
+        if node_id in coordinate_transform:
+            original_x = node.get('x')
+            original_y = node.get('y')
+            transformed = coordinate_transform[node_id]
+            print(f"  {node['data']['name']}: ({original_x}, {original_y}) → ({transformed['x']}, {transformed['y']})")
     
     for node in nodes:
         device_name = node['data']['name']
         device_type = node['data']['type']
         model = device_models.get(device_type, 'PC-PT')
-        x = node.get('x', 100)
-        y = node.get('y', 100)
+        node_id = node.get('id')
+        
+        # Usar coordenadas transformadas al rango de Packet Tracer
+        if node_id in coordinate_transform:
+            x = coordinate_transform[node_id]['x']
+            y = coordinate_transform[node_id]['y']
+        else:
+            # Fallback: usar centro de Packet Tracer
+            x, y = 2000, 2000
+        
         lines.append(f'addDevice("{device_name}", "{model}", {x}, {y});')
     
     lines.append("")
@@ -174,29 +345,55 @@ def generate_ptbuilder_script(topology, router_configs, computers):
             lines.append(f'addModule("{device_name}", "0/0", "WIC-1ENET");')
             lines.append(f'addModule("{device_name}", "0/1", "WIC-1ENET");')
             lines.append(f'addModule("{device_name}", "0/2", "WIC-1ENET");')
+            lines.append(f'addModule("{device_name}", "0/3", "WIC-1ENET");')
     
     lines.append("")
     
+    # Procesar conexiones usando interfaces ya asignadas en el frontend
     for edge in edges:
         from_node = node_map.get(edge['from'])
         to_node = node_map.get(edge['to'])
         if not from_node or not to_node:
             continue
+        
         from_name = from_node['data']['name']
         to_name = to_node['data']['name']
-        from_type = from_node['data']['type']
-        to_type = to_node['data']['type']
-        from_iface = get_next_available_interface(from_name, from_type)
-        to_iface = get_next_available_interface(to_name, to_type)
-        if from_iface and to_iface:
+        
+        # Obtener interfaces directamente del edge data
+        if 'data' in edge and 'fromInterface' in edge['data'] and 'toInterface' in edge['data']:
+            from_iface_data = edge['data']['fromInterface']
+            to_iface_data = edge['data']['toInterface']
+            
+            # DEBUG: Mostrar datos separados antes de construir nombre completo
+            print(f"\n🔗 CONEXIÓN: {from_name} → {to_name}")
+            print(f"   Edge ID: {edge.get('id')}")
+            print(f"   Edge Data completo: {edge['data']}")
+           
+            
+            # Construir nombre completo de interfaz
+            from_iface = f"{from_iface_data['type']}{from_iface_data['number']}"
+            to_iface = f"{to_iface_data['type']}{to_iface_data['number']}"
+            
+            # DEBUG: Mostrar interfaces construidas
+            print(f"   From Interface construida: {from_iface}")
+            print(f"   To Interface construida: {to_iface}")
+      
+            
             lines.append(f'addLink("{from_name}", "{from_iface}", "{to_name}", "{to_iface}", "straight");')
+        else:
+            print(f"⚠️ Advertencia: Conexión sin interfaces definidas entre {from_name} y {to_name}")
     
     lines.append("")
-    
+    # Generar configuraciones para cada dispositivo (routers, switches, switch cores)
     for router_config in router_configs:
         device_name = router_config['name']
         config_lines = router_config['config']
-        config_text = "\\n".join([line for line in config_lines if line.strip()])
+        
+        # Reformatear configuración para PTBuilder (agregar exit\nenable\nconf t antes de cada interfaz)
+        formatted_config = format_config_for_ptbuilder(config_lines)
+        
+        # Convertir a string con \n como separador
+        config_text = "\\n".join([line for line in formatted_config if line.strip()])
         config_text = config_text.replace('"', '\\"')
         lines.append(f'configureIosDevice("{device_name}", "{config_text}");')
     
@@ -206,8 +403,14 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         pc_name = computer['data']['name']
         lines.append(f'configurePcIp("{pc_name}", true);')
     
+    # Retornar contenido en lugar de escribir a disco
+    ptbuilder_content = "\n".join(lines)
+    
+    # También guardar en archivo para compatibilidad con herramientas existentes
     with open("topology_ptbuilder.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+        f.write(ptbuilder_content)
+    
+    return ptbuilder_content
 
 def generate_separated_txt_files(router_configs):
     """
@@ -442,6 +645,16 @@ def handle_visual_topology(topology):
         edges = topology['edges']
         vlans = topology['vlans']
         
+        # Obtener el primer octeto de la red base (por defecto 19 si no se especifica)
+        base_octet = topology.get('baseNetworkOctet', 19)
+        
+        # DEBUG: Mostrar coordenadas recibidas del cliente
+        print("\n🔍 COORDINADAS RECIBIDAS DEL CLIENTE:")
+        for node in nodes:
+            print(f"  {node['data']['name']}: x={node.get('x')}, y={node.get('y')}")
+        
+        print(f"\nRED BASE CONFIGURADA: {base_octet}.0.0.0/8")
+        
         # ============================================================
         # FASE 1: PRE-CÁLCULO DE MAPAS PARA OPTIMIZACIÓN O(1)
         # ============================================================
@@ -467,17 +680,109 @@ def handle_visual_topology(topology):
                 switches.append(n)
             elif node_type == 'switch_core':
                 switch_cores.append(n)
-            elif node_type == 'computer':
-                computers.append(n)
         
+        # Extraer computadoras del NUEVO SISTEMA (almacenadas en switches y switch_cores)
+        # Contador global para nombres únicos de PCs
+        pc_counter = 1
+        
+        # Ya no buscamos nodos tipo 'computer', solo las almacenadas en data.computers
+        for s in switches:
+            mov_in_x = 0;
+            if 'computers' in s['data']:
+                for pc in s['data']['computers']:
+                    # Generar nombre único global con contador
+                    unique_pc_name = f"PC{pc_counter}"
+                    pc_counter += 1
+                    
+                    # Crear estructura compatible con el formato de nodo
+                    pc_node = {
+                        'id': f"{s['id']}_pc_{pc['name']}",  # ID único basado en el switch
+                        'data': {
+                            'name': unique_pc_name,  # Usar nombre único global
+                            'type': 'computer',
+                            'vlan': pc.get('vlan'),
+                            'port': f"{pc['portType']}{pc['portNumber']}"
+                        },
+                        # Posicionar cerca del switch
+                        'x': s.get('x', 0) + 75 - mov_in_x,  
+                        'y': s.get('y', 0) + 50
+                    }
+                    computers.append(pc_node)
+                    # Agregar también a la lista de nodos para PT Builder
+                    nodes.append(pc_node)
+                    
+                    # CREAR EDGE (CONEXIÓN) entre switch y PC para PT Builder
+                    edge_synthetic = {
+                        'id': f"edge_{s['id']}_to_{pc_node['id']}",
+                        'from': s['id'],
+                        'to': pc_node['id'],
+                        'data': {
+                            'fromInterface': {
+                                'type': expand_interface_type(pc['portType']),  # Expandir fa -> FastEthernet
+                                'number': pc['portNumber']
+                            },
+                            'toInterface': {
+                                'type': 'FastEthernet',
+                                'number': '0'
+                            }
+                        }
+                    }
+                    edges.append(edge_synthetic)
+                    
+                    mov_in_x += 75;
+        
+        for swc in switch_cores:
+            mov_in_x = 0;
+            if 'computers' in swc['data']:
+                for pc in swc['data']['computers']:
+                    # Generar nombre único global con contador
+                    unique_pc_name = f"PC{pc_counter}"
+                    pc_counter += 1
+                    
+                    # Crear estructura compatible con el formato de nodo
+                    pc_node = {
+                        'id': f"{swc['id']}_pc_{pc['name']}",  # ID único basado en el switch core
+                        'data': {
+                            'name': unique_pc_name,  # Usar nombre único global
+                            'type': 'computer',
+                            'vlan': pc.get('vlan'),
+                            'port': f"{pc['portType']}{pc['portNumber']}"
+                        },
+                        # Posicionar cerca del switch core
+                        'x': swc.get('x', 0) + 75 - mov_in_x,
+                        'y': swc.get('y', 0) + 50
+                    }
+                    computers.append(pc_node)
+                    # Agregar también a la lista de nodos para PT Builder
+                    nodes.append(pc_node)
+                    
+                    # CREAR EDGE (CONEXIÓN) entre switch core y PC para PT Builder
+                    edge_synthetic = {
+                        'id': f"edge_{swc['id']}_to_{pc_node['id']}",
+                        'from': swc['id'],
+                        'to': pc_node['id'],
+                        'data': {
+                            'fromInterface': {
+                                'type': expand_interface_type(pc['portType']),  # Expandir fa -> FastEthernet
+                                'number': pc['portNumber']
+                            },
+                            'toInterface': {
+                                'type': 'FastEthernet',
+                                'number': '0'
+                            }
+                        }
+                    }
+                    edges.append(edge_synthetic)
+                    
+                    mov_in_x += 75;
         # ============================================================
         # FASE 3: ASIGNACIÓN DE REDES /30 PARA BACKBONE
         # ============================================================
         # Backbone: Conexiones punto a punto entre routers/switch cores
-        # Usa red 19.0.0.0/8 dividida en subredes /30 (2 hosts utilizables)
+        # Usa la red base configurada (por defecto 19.0.0.0/8) dividida en subredes /30
         router_configs = []
         
-        base = ipaddress.ip_network("19.0.0.0/8")  # Base para subnetting de backbone
+        base = ipaddress.ip_network(f"{base_octet}.0.0.0/8")  # Base configurable para subnetting
         used = []  # Lista de subredes /30 ya asignadas
         edge_ips = {}  # Mapeo edge_id → IPs asignadas
         
@@ -568,7 +873,7 @@ def handle_visual_topology(topology):
                     ip_addr = str(ip_data['from_ip']) if is_from else str(ip_data['to_ip'])
                     next_hop_ip = str(ip_data['to_ip']) if is_from else str(ip_data['from_ip'])
                     
-                    config_lines.append(f"int {iface_full}")
+                    config_lines.append(f"int {iface_full} ")
                     config_lines.append(f"ip add {ip_addr} {ip_data['mask']}")
                     config_lines.append("no shut")
                     
@@ -592,6 +897,7 @@ def handle_visual_topology(topology):
                 edge = switch_connection['edge']
                 is_from = switch_connection['is_from']
                 iface_data = edge['data']['fromInterface'] if is_from else edge['data']['toInterface']
+                #Aquí el type le agrega Fa
                 iface_full = f"{iface_data['type']}{iface_data['number']}"
                 
                 # Obtener VLANs del switch conectado (búsqueda O(1))
@@ -655,9 +961,14 @@ def handle_visual_topology(topology):
                     hosts = list(network.hosts())
                     vlan_num = vlan_data['termination']
                     
+                    # Excluded addresses ANTES del pool
+                    config_lines.append(f"ip dhcp excluded-address {hosts[0]} {hosts[9] if len(hosts) > 9 else hosts[-1]}")
+                    config_lines.append("")
+                    
                     config_lines.append(f"ip dhcp pool vlan{vlan_num}")
                     config_lines.append(f"network {network.network_address} {network.netmask}")
                     config_lines.append(f"default-router {vlan_data['gateway']}")
+                    config_lines.append("exit")  # IMPORTANTE: Salir del pool DHCP
                     config_lines.append("")
             
             config_lines.append("exit")
@@ -798,6 +1109,7 @@ def handle_visual_topology(topology):
                         config_lines.append(f"interface {iface_full}")
                         config_lines.append(" switchport trunk encapsulation dot1Q")
                         config_lines.append(" switchport mode trunk")
+                        config_lines.append(" no shutdown")
                         config_lines.append("")
             
             # Configurar EtherChannels si existen
@@ -844,14 +1156,11 @@ def handle_visual_topology(topology):
                 vlan_num = vlan_data['termination']
                 
                 config_lines.append(f"ip dhcp excluded-address {hosts[0]} {hosts[9] if len(hosts) > 9 else hosts[-1]}")
-                config_lines.append("")
                 config_lines.append(f"ip dhcp pool VLAN{vlan_num}")
                 config_lines.append(f" network {network.network_address} {network.netmask}")
                 config_lines.append(f" default-router {vlan_data['gateway']}")
                 config_lines.append(" dns-server 8.8.8.8")
-                config_lines.append("")
-            
-            config_lines.append("exit")
+                config_lines.append("exit")  # IMPORTANTE: Salir del pool DHCP
             
             router_configs.append({
                 'name': name,
@@ -957,6 +1266,7 @@ def handle_visual_topology(topology):
                         
                         config_lines.append(f"int {iface_full}")
                         config_lines.append("switchport mode trunk")
+                        config_lines.append("no shutdown")
                         processed_edges.add(edge['id'])  # Marcar como procesado
             
             # Configurar EtherChannels si existen
@@ -969,6 +1279,7 @@ def handle_visual_topology(topology):
             for port in computer_ports:
                 config_lines.append(f"int {port['interface']}")
                 config_lines.append(f"switchport access vlan {port['vlan']}")
+                config_lines.append("no shutdown")
             
             router_configs.append({
                 'name': name,
@@ -1013,8 +1324,9 @@ def handle_visual_topology(topology):
         global config_files_content
         config_files_content = generate_separated_txt_files(router_configs)
         
-        # Generar script PTBuilder
-        generate_ptbuilder_script(topology, router_configs, computers)
+        # Generar script PTBuilder y guardar en config_files_content
+        ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
+        config_files_content['ptbuilder'] = ptbuilder_content
         
         return render_template("router_results.html", 
                              routers=router_configs,
@@ -1084,6 +1396,7 @@ def download_by_type(device_type):
             - 'switch_cores': Solo configuraciones de switch cores
             - 'switches': Solo configuraciones de switches
             - 'completo': Todas las configuraciones consolidadas
+            - 'ptbuilder': Script PTBuilder para automatizar creación en Packet Tracer
     
     Returns:
         FileResponse: Archivo TXT correspondiente al tipo solicitado
@@ -1094,11 +1407,13 @@ def download_by_type(device_type):
         - /download/switch_cores → config_switch_cores.txt
         - /download/switches → config_switches.txt
         - /download/completo → config_completo.txt
+        - /download/ptbuilder → topology_ptbuilder.txt
     
     Método: GET
     
     Ejemplo de uso:
         <a href="/download/routers">Descargar Routers</a>
+        <a href="/download/ptbuilder">Descargar PTBuilder Script</a>
     """
     global config_files_content
     
@@ -1107,12 +1422,13 @@ def download_by_type(device_type):
         'routers': 'config_routers.txt',
         'switch_cores': 'config_switch_cores.txt',
         'switches': 'config_switches.txt',
-        'completo': 'config_completo.txt'
+        'completo': 'config_completo.txt',
+        'ptbuilder': 'topology_ptbuilder.txt'
     }
     
     # Validar tipo de dispositivo
     if device_type not in file_names:
-        return "Tipo de dispositivo no válido. Tipos válidos: routers, switch_cores, switches, completo", 400
+        return "Tipo de dispositivo no válido. Tipos válidos: routers, switch_cores, switches, completo, ptbuilder", 400
     
     # Verificar que exista contenido generado
     if device_type not in config_files_content:
