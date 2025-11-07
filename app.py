@@ -337,10 +337,12 @@ def format_config_for_ptbuilder(config_lines):
             if inside_dhcp_pool:
                 formatted.append(line)
                 inside_dhcp_pool = False
-            # Si estamos dentro de una interfaz, ya lo agregamos automáticamente
-            elif found_first_interface and needs_exit_before_next:
-                # Ya lo agregamos automáticamente, no duplicar
-                continue
+                needs_exit_before_next = False
+            # Si estamos dentro de una interfaz range (EtherChannel), este exit es válido
+            elif needs_exit_before_next:
+                # Este es el exit del interface range, mantenerlo pero marcar que ya salimos
+                formatted.append(line)
+                needs_exit_before_next = False
             else:
                 # Exit normal (ej: al final de toda la config)
                 formatted.append(line)
@@ -1271,7 +1273,7 @@ def handle_visual_topology(topology):
             name = switch['data']['name']
             switch_id = switch['id']
             
-            config_lines.append(f"{name}")
+            # NO agregar el nombre del dispositivo aquí - PTBuilder ya lo tiene en configureIosDevice()
             config_lines.append("enable")
             config_lines.append("conf t")
             config_lines.append(f"Hostname {name}")
