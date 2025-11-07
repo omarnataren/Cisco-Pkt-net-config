@@ -110,6 +110,44 @@ def expand_interface_type(short_type):
     }
     return interface_map.get(short_type, short_type)
 
+def generate_ssh_config(domain_name="cisco.com", username="usuario", password="1234"):
+    """
+    Genera configuración SSH para switches y switch cores
+    
+    Configuración SSH básica que permite acceso remoto seguro mediante SSH.
+    Incluye:
+        - Nombre de dominio (requerido para generar claves RSA)
+        - Generación de claves RSA de 2048 bits con general-keys
+        - Usuario local para autenticación
+        - Configuración de líneas VTY para SSH versión 2
+    
+    Args:
+        domain_name (str): Nombre de dominio para claves RSA (default: "cisco.com")
+        username (str): Usuario administrativo (default: "usuario")
+        password (str): Contraseña del usuario (default: "1234")
+    
+    Returns:
+        list: Lista de comandos IOS para configurar SSH
+    
+    Ejemplo:
+        >>> generate_ssh_config()
+        ['', '! Configuración SSH', 'ip domain-name cisco.com', ...]
+    """
+    commands = []
+    commands.append("")
+    commands.append("! Configuración SSH")
+    commands.append(f"ip domain-name {domain_name}")
+    commands.append("crypto key generate rsa general-keys modulus 2048")
+    commands.append(f"username {username} password {password}")
+    commands.append("ip ssh ver 2")
+    commands.append("line vty 0 15")
+    commands.append(" transport input ssh")
+    commands.append(" login local")
+    commands.append("exit")
+    commands.append("")
+    
+    return commands
+
 def expand_interface_range(iface_type, range_str):
     """
     Expande un rango de interfaces en una lista de nombres completos para PTBuilder
@@ -1096,6 +1134,10 @@ def handle_visual_topology(topology):
             config_lines.append("ip routing")
             config_lines.append("")
             
+            # Agregar configuración SSH
+            ssh_config = generate_ssh_config()
+            config_lines.extend(ssh_config)
+            
             # Crear VLANs (búsquedas optimizadas)
             vlans_used = set()
             swc_edges = edges_by_node.get(swc_id, [])
@@ -1306,6 +1348,10 @@ def handle_visual_topology(topology):
             config_lines.append(f"Hostname {name}")
             config_lines.append("Enable secret cisco")
             config_lines.append("")
+            
+            # Agregar configuración SSH
+            ssh_config = generate_ssh_config()
+            config_lines.extend(ssh_config)
             
             # Obtener VLANs de computadoras conectadas (búsquedas O(1))
             switch_edges = edges_by_node.get(switch_id, [])
