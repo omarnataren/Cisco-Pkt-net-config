@@ -729,7 +729,8 @@ def generate_etherchannel_config(etherchannel_data: dict, is_from: bool) -> list
     commands.append(f"interface range {iface_type}{iface_range}")
     commands.append("switchport mode trunk")
     commands.append(f"channel-group {group} mode {mode}")
-    commands.append("exit")
+    commands.append("no shutdown")
+    # NO agregar exit aquí - el formatter lo maneja
     commands.append("")
     
     return commands
