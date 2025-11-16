@@ -6,8 +6,8 @@ from flask import Blueprint, render_template, request, send_file, current_app
 import json
 import io
 
-# Importar funciones de logic.py
-from app.logic import handle_visual_topology
+# Importar funciones del orquestador
+from app.logic.orchestrator import handle_visual_topology
 
 bp = Blueprint('main', __name__)
 

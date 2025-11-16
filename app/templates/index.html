@@ -10,6 +10,7 @@
     
     <!-- CSS -->
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/modals.css') }}" rel="stylesheet" type="text/css" />
     
 </head>
 <body>
@@ -123,9 +124,6 @@
     <!-- Modal para editar conexión -->
     {% include 'modals/edit_connection_modal.html' %}
     
-    <!-- Modal para asignar VLAN a computadora -->
-    {% include 'modals/computer_vlan_modal.html' %}
-    
     <!-- Modal para administrar computadoras de un switch -->
     {% include 'modals/manage_computers_modal.html' %}
     {% include 'modals/add_computer_modal.html' %}
@@ -135,6 +133,6 @@
 
     <!-- JavaScript importaciones -->
     <script src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

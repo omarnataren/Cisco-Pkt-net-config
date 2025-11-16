@@ -1,0 +1,19 @@
+export let network = null;
+export let nodes = new vis.DataSet([]);
+export let edges = new vis.DataSet([]);
+export let vlans = [];
+export let routerCounter = 1;
+export let switchCounter = 1;
+export let switchCoreCounter = 1;
+export let computerCounter = 1;
+export let connectionMode = false;
+export let firstNodeConnection = null;
+export let selectedNode = null;
+export let selectedEdge = null;
+export let editingEdge = null;
+export let devicePositioningMode = false;
+export let pendingDeviceType = null;
+export const MIN_ZOOM = 0.5;
+export const MAX_ZOOM = 3.0;
+// Rastreador de interfaces usadas por dispositivo
+export let usedInterfaces = {};
