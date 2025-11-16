@@ -1,0 +1,37 @@
+<!-- Modal para agregar nueva computadora -->
+<div id="add-computer-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Agregar Computadora</h3>
+            <button class="modal-close" onclick="closeAddComputerModal()" title="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="input-group">
+                <label>Nombre de la PC</label>
+                <input type="text" id="new-pc-name" placeholder="PC1">
+            </div>
+            
+            <div class="input-group">
+                <label>Puerto del Switch</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="new-pc-port-type" onchange="updateNewPcPortList()" style="flex: 0 0 120px;">
+                        <option value="fa">FastEthernet</option>
+                        <option value="gi">GigabitEthernet</option>
+                    </select>
+                    <select id="new-pc-port-number" style="flex: 1;">
+                        <option value="">Seleccionar interfaz...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label>VLAN Asignada</label>
+                <select id="new-pc-vlan"></select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeAddComputerModal()">Cancelar</button>
+            <button class="btn" onclick="saveNewComputer()">Agregar</button>
+        </div>
+    </div>
+</div>
