@@ -1,6 +1,4 @@
 // ✅ Importaciones optimizadas
-import { nodes, edges, editingEdge, firstNodeConnection } from '../core/network-state.js';
-import { interfaceData, interfaceTypeNames } from '../core/network-constants.js';
 import { showNotification } from '../ui/notification.js';
 
 /**
@@ -14,9 +12,9 @@ export function toggleEtherChannelFields() {
     
     if (connectionType === 'etherchannel') {
         // Validar que ambos extremos sean switches
-        const edge = edges.get(editingEdge);
-        const fromNode = nodes.get(edge.from);
-        const toNode = nodes.get(edge.to);
+        const edge = window.edges.get(window.editingEdge);
+        const fromNode = window.nodes.get(edge.from);
+        const toNode = window.nodes.get(edge.to);
         const fromIsSwitch = fromNode.data.type === 'switch' || fromNode.data.type === 'switch_core';
         const toIsSwitch = toNode.data.type === 'switch' || toNode.data.type === 'switch_core';
         if (!fromIsSwitch || !toIsSwitch) {
@@ -46,8 +44,8 @@ function updateEtherChannelFromList() {
     interfaceSelect.innerHTML = '<option value="">Seleccionar interfaz...</option>';
     
     // Agregar interfases del tipo seleccionado
-    const interfaces = interfaceData[selectedType] || [];
-    const typeName = interfaceTypeNames[selectedType] || '';
+    const interfaces = window.interfaceData[selectedType] || [];
+    const typeName = window.interfaceTypeNames[selectedType] || '';
     
     interfaces.forEach(ifaceNumber => {
         const option = document.createElement('option');
@@ -69,8 +67,8 @@ function updateEtherChannelToList() {
     interfaceSelect.innerHTML = '<option value="">Seleccionar interfaz...</option>';
     
     // Agregar interfases del tipo seleccionado
-    const interfaces = interfaceData[selectedType] || [];
-    const typeName = interfaceTypeNames[selectedType] || '';
+    const interfaces = window.interfaceData[selectedType] || [];
+    const typeName = window.interfaceTypeNames[selectedType] || '';
     
     interfaces.forEach(ifaceNumber => {
         const option = document.createElement('option');
@@ -92,8 +90,8 @@ function toggleNewConnectionFields() {
     
     if (connectionType === 'etherchannel') {
         // Validar que ambos nodos sean switches
-        if (firstNodeConnection) {
-            const fromNode = nodes.get(firstNodeConnection);
+        if (window.firstNodeConnection) {
+            const fromNode = window.nodes.get(window.firstNodeConnection);
             const fromIsSwitch = fromNode.data.type === 'switch' || fromNode.data.type === 'switch_core';
             
             if (!fromIsSwitch) {

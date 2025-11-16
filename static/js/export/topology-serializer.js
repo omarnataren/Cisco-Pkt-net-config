@@ -48,5 +48,10 @@ document.body.removeChild(form);
     }, 100);
 }
 
+// Exportar función a window para compatibilidad con onclick en HTML
+window.generateConfigurations = generateConfigurations;
+
+// Exportar función a window para compatibilidad con onclick en HTML
+window.generateConfigurations = generateConfigurations;
 // ✅ Exponer funciones globalmente para compatibilidad con HTML onclick
 window.generateConfigurations = generateConfigurations;

@@ -114,3 +114,12 @@ releaseInterface(
     showNotification('Conexión eliminada');
     clearSelection();
 }
+
+function closeEditConnectionModal() {
+    document.getElementById('edit-connection-modal').style.display = 'none';
+}
+
+// Exportar funciones a window para compatibilidad con onclick en HTML
+window.saveEditedConnection = saveEditedConnection;
+window.deleteConnection = deleteConnection;
+window.closeEditConnectionModal = closeEditConnectionModal;

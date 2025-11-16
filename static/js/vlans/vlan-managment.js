@@ -8,12 +8,12 @@ export function addVLAN() {
         return;
     }
     // Verificar que no exista
-    if (vlans.find(v => v.name === name)) {
+    if (window.vlans.find(v => v.name === name)) {
         showNotification('Esta VLAN ya existe', 'error');
         return;
     }
     
-    vlans.push({ name: name, prefix: prefix });
+    window.vlans.push({ name: name, prefix: prefix });
     document.getElementById('vlan-name').value = '';
     updateVLANList();
     showNotification('VLAN ' + name + ' agregada');
@@ -24,7 +24,7 @@ export function updateVLANList() {
     const list = document.getElementById('vlan-list');
     list.innerHTML = '';
     
-    vlans.forEach((vlan, index) => {
+    window.vlans.forEach((vlan, index) => {
 const item = document.createElement('div');
 item.className = 'vlan-item';
 item.innerHTML = `
@@ -43,7 +43,7 @@ list.appendChild(item);
 
 // Eliminar VLAN
 export function deleteVLAN(index) {
-    vlans.splice(index, 1);
+    window.vlans.splice(index, 1);
     updateVLANList();
     showNotification('VLAN eliminada');
 }
@@ -52,7 +52,7 @@ export function deleteVLAN(index) {
 export function updateComputerVlanSelect() {
     const select = document.getElementById('computer-vlan-select');
     select.innerHTML = '<option value="">-- Selecciona VLAN --</option>';
-    vlans.forEach(vlan => {
+    window.vlans.forEach(vlan => {
 const option = document.createElement('option');
 option.value = vlan.name;
 option.textContent = vlan.name + ' (/' + vlan.prefix + ')';

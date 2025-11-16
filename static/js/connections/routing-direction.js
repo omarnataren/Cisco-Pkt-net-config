@@ -51,7 +51,7 @@ export function getArrowsForDirection(direction) {
 export function cycleRoutingDirection(edgeId) {
     if (!edgeId) return;
     
-    const edge = edges.get(edgeId);
+    const edge = window.edges.get(edgeId);
     const currentDirection = edge.data.routingDirection || 'bidirectional';
     
     // Ciclo: bidirectional → from-to → to-from → none → bidirectional
@@ -65,7 +65,7 @@ export function cycleRoutingDirection(edgeId) {
     const newDirection = cycle[currentDirection];
     
     // Actualizar edge
-    edges.update({
+    window.edges.update({
         id: edgeId,
         data: {
             ...edge.data,
@@ -75,8 +75,8 @@ export function cycleRoutingDirection(edgeId) {
     });
     
     // Actualizar propiedades si este edge está seleccionado
-    if (selectedEdge === edgeId) {
-        showEdgeProperties(edgeId);
+    if (window.selectedEdge === edgeId) {
+        window.showEdgeProperties(edgeId);
     }
     
     const directionNames = {
@@ -85,5 +85,9 @@ export function cycleRoutingDirection(edgeId) {
         'to-from': 'Unidireccional ←',
         'none': 'Sin ruteo'
     };
-    showNotification('Dirección: ' + directionNames[newDirection]);
+    window.showNotification('Dirección: ' + directionNames[newDirection]);
 }
+
+// ✅ Exponer funciones globalmente para compatibilidad con HTML onclick
+window.getArrowsForDirection = getArrowsForDirection;
+window.cycleRoutingDirection = cycleRoutingDirection;

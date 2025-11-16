@@ -1,13 +1,12 @@
 // ✅ Importaciones optimizadas
-import { nodes, edges, selectedNode, selectedEdge, usedInterfaces } from './network-state.js';
 import { showNotification } from '../ui/notification.js';
 import { releaseInterface } from '../devices/device-interfaces.js';
 
 // Seleccionar nodo
 export function selectNode(nodeId) {
-    selectedNode = nodeId;
-    selectedEdge = null;
-    const node = nodes.get(nodeId);
+    window.selectedNode = nodeId;
+    window.selectedEdge = null;
+    const node = window.nodes.get(nodeId);
     
     // Llamada a función global (definida en property-panel.js)
     if (typeof window.showDeviceProperties === 'function') {
@@ -17,16 +16,16 @@ export function selectNode(nodeId) {
 
 // Seleccionar edge
 export function selectEdge(edgeId) {
-    selectedEdge = edgeId;
-    selectedNode = null;
+    window.selectedEdge = edgeId;
+    window.selectedNode = null;
     showEdgeProperties(edgeId);
 }
 
 
 // Limpiar selección
 export function clearSelection() {
-    selectedNode = null;
-    selectedEdge = null;
+    window.selectedNode = null;
+    window.selectedEdge = null;
     const content = document.getElementById('properties-content');
     content.innerHTML = `
     <p style="color: #8b949e; text-align: center; padding: 40px 20px;">
@@ -37,14 +36,14 @@ export function clearSelection() {
 
 // Eliminar selección
 export function deleteSelected() {
-    if (selectedNode) {
-    const node = nodes.get(selectedNode);
+    if (window.selectedNode) {
+    const node = window.nodes.get(window.selectedNode);
 
     // Liberar interfaces de las conexiones antes de eliminarlas
-    const connectedEdges = edges.get().filter(e => e.from === selectedNode || e.to === selectedNode);
+    const connectedEdges = window.edges.get().filter(e => e.from === window.selectedNode || e.to === window.selectedNode);
     connectedEdges.forEach(edge => {
-        const fromNode = nodes.get(edge.from);
-        const toNode = nodes.get(edge.to);
+        const fromNode = window.nodes.get(edge.from);
+        const toNode = window.nodes.get(edge.to);
         
         if (edge.data && edge.data.fromInterface && fromNode && fromNode.data.type === 'router') {
             releaseInterface(
@@ -61,17 +60,17 @@ export function deleteSelected() {
                 edge.data.toInterface.number
             );
         }
-        edges.remove(edge.id);
+        window.edges.remove(edge.id);
     });
         // Limpiar rastreador de interfaces del dispositivo eliminado
-        if (usedInterfaces[node.data.name]) {
-            delete usedInterfaces[node.data.name];
+        if (window.usedInterfaces[node.data.name]) {
+            delete window.usedInterfaces[node.data.name];
         }
 
-        nodes.remove(selectedNode);
+        window.nodes.remove(window.selectedNode);
         showNotification(node.data.name + ' eliminado');
         clearSelection();
-    } else if (selectedEdge) {
+    } else if (window.selectedEdge) {
         // Llamar a función global
         if (typeof window.deleteConnection === 'function') {
             window.deleteConnection();

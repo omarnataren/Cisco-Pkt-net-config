@@ -1,40 +1,47 @@
 // Modo de conexión con toggle
 export function toggleConnectionMode() {
-    connectionMode = !connectionMode;
-    firstNodeConnection = null;
+    window.connectionMode = !window.connectionMode;
+    window.firstNodeConnection = null;
+    
+    // Actualizar opción de arrastre en la red
+    if (window.network) {
+        window.network.setOptions({
+            interaction: { dragNodes: !window.connectionMode }
+        });
+    }
     
     const btn = document.getElementById('connect-btn');
-    if (connectionMode) {
+    if (window.connectionMode) {
         btn.classList.add('active');
-        showNotification('Modo conexión activado. Haz clic en dos dispositivos');
+        window.showNotification('Modo conexión activado. Haz clic en dos dispositivos');
     } else {
         btn.classList.remove('active');
-        showNotification('Modo conexión desactivado');
+        window.showNotification('Modo conexión desactivado');
     }
 }
 
 // Mantener compatibilidad
 export function enableConnectionMode() {
-    if (!connectionMode) {
+    if (!window.connectionMode) {
         toggleConnectionMode();
     }
 }
 
 // Manejar clic para conexión
 export function handleConnectionClick(nodeId) {
-    if (!firstNodeConnection) {
-        firstNodeConnection = nodeId;
-        const node = nodes.get(nodeId);
-        showNotification('Seleccionado: ' + node.data.name + '. Ahora selecciona el destino');
+    if (!window.firstNodeConnection) {
+        window.firstNodeConnection = nodeId;
+        const node = window.nodes.get(nodeId);
+        window.showNotification('Seleccionado: ' + node.data.name + '. Ahora selecciona el destino');
     } else {
-        if (firstNodeConnection === nodeId) {
-            showNotification('No puedes conectar un dispositivo consigo mismo', 'error');
-            firstNodeConnection = null;
+        if (window.firstNodeConnection === nodeId) {
+            window.showNotification('No puedes conectar un dispositivo consigo mismo', 'error');
+            window.firstNodeConnection = null;
             return;
         }
         // Abrir modal para configurar conexión
-        const fromNode = nodes.get(firstNodeConnection);
-        const toNode = nodes.get(nodeId);
+        const fromNode = window.nodes.get(window.firstNodeConnection);
+        const toNode = window.nodes.get(nodeId);
 
         // Auto-asignar interfaces para routers y switches
         let fromInterface = null;
@@ -42,23 +49,23 @@ export function handleConnectionClick(nodeId) {
         
         // Asignar interfaz para el nodo origen (router, switch o switch_core)
         if (fromNode.data.type === 'router' || fromNode.data.type === 'switch' || fromNode.data.type === 'switch_core') {
-            fromInterface = getNextAvailableInterface(fromNode.data.name, fromNode.data.type);
+            fromInterface = window.getNextAvailableInterface(fromNode.data.name, fromNode.data.type);
             if (!fromInterface) {
-                showNotification(`No hay interfaces disponibles en ${fromNode.data.name}`, 'error');
-                firstNodeConnection = null;
+                window.showNotification(`No hay interfaces disponibles en ${fromNode.data.name}`, 'error');
+                window.firstNodeConnection = null;
                 return;
             }
         }
         // Asignar interfaz para el nodo destino (router, switch o switch_core)
         if (toNode.data.type === 'router' || toNode.data.type === 'switch' || toNode.data.type === 'switch_core') {
-            toInterface = getNextAvailableInterface(toNode.data.name, toNode.data.type);
+            toInterface = window.getNextAvailableInterface(toNode.data.name, toNode.data.type);
             if (!toInterface) {
                 // Liberar la interfaz del origen si ya se asignó
                 if (fromInterface) {
-                    releaseInterface(fromNode.data.name, fromInterface.type, fromInterface.number);
+                    window.releaseInterface(fromNode.data.name, fromInterface.type, fromInterface.number);
                 }
-                showNotification(`No hay interfaces disponibles en ${toNode.data.name}`, 'error');
-                firstNodeConnection = null;
+                window.showNotification(`No hay interfaces disponibles en ${toNode.data.name}`, 'error');
+                window.firstNodeConnection = null;
                 return;
             }
         }
@@ -136,11 +143,15 @@ export function handleConnectionClick(nodeId) {
         // Mostrar campos normales y ocultar EtherChannel
         document.getElementById('new-normal-fields').style.display = 'block';
         document.getElementById('new-etherchannel-fields').style.display = 'none';
-        updateFromInterfaceList();
-        updateToInterfaceList();
+        window.updateFromInterfaceList();
         document.getElementById('conn-from-name').textContent = fromNode.data.name;
         document.getElementById('conn-to-name').textContent = toNode.data.name;
         document.getElementById('conn-to-name-ec').textContent = toNode.data.name;
         document.getElementById('connection-modal').style.display = 'block';
     }
 }
+
+// Exportar funciones a window para compatibilidad con onclick en HTML
+window.toggleConnectionMode = toggleConnectionMode;
+window.enableConnectionMode = enableConnectionMode;
+window.handleConnectionClick = handleConnectionClick;

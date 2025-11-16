@@ -1,12 +1,19 @@
 // Agregar dispositivo
 export function addDevice(type) {
     // Activar modo de posicionamiento
-    devicePositioningMode = true;
-    pendingDeviceType = type;
+    window.devicePositioningMode = true;
+    window.pendingDeviceType = type;
+    
+    // Deshabilitar arrastre mientras estamos posicionando
+    if (window.network) {
+        window.network.setOptions({
+            interaction: { dragNodes: false }
+        });
+    }
     
     // Cambiar cursor y mostrar mensaje
     document.getElementById('network-canvas').style.cursor = 'crosshair';
-    showNotification(`Haz click en el área de trabajo para posicionar el dispositivo`, 'info');
+    window.showNotification(`Haz click en el área de trabajo para posicionar el dispositivo`, 'info');
     
     // Cambiar estilo del botón para indicar que está activo
     const buttons = document.querySelectorAll('.btn');
@@ -19,32 +26,32 @@ if (btn.getAttribute('onclick') === `addDevice('${type}')`) {
 
 
 export function createDeviceAtPosition(x, y) {
-    if (!devicePositioningMode || !pendingDeviceType) return;
+    if (!window.devicePositioningMode || !window.pendingDeviceType) return;
     
     let name, color, shape, deviceType;
-    const type = pendingDeviceType;
+    const type = window.pendingDeviceType;
     
     switch(type) {
 case 'router':
-    name = 'R' + routerCounter++;
+    name = 'R' + window.routerCounter++;
     color = { background: '#6e7681', border: '#8b949e' };
     shape = 'circle';
     deviceType = 'router';
     break;
 case 'switch':
-    name = 'SW' + switchCounter++;
+    name = 'SW' + window.switchCounter++;
     color = { background: '#6e7681', border: '#8b949e' };
     shape = 'box';
     deviceType = 'switch';
     break;
 case 'switch_core':
-    name = 'SWC' + switchCoreCounter++;
+    name = 'SWC' + window.switchCoreCounter++;
     color = { background: '#6e7681', border: '#8b949e' };
     shape = 'box';
     deviceType = 'switch_core';
     break;
 case 'computer':
-    name = 'PC' + computerCounter++;
+    name = 'PC' + window.computerCounter++;
     color = { background: '#6e7681', border: '#8b949e' };
     shape = 'circle';
     deviceType = 'computer';
@@ -52,7 +59,7 @@ case 'computer':
     }
     
     const id = deviceType + '_' + Date.now();
-    nodes.add({
+    window.nodes.add({
 id: id,
 label: name,
 title: name,
@@ -75,13 +82,24 @@ data: {
     });
     
     // Desactivar modo de posicionamiento
-    devicePositioningMode = false;
-    pendingDeviceType = null;
+    window.devicePositioningMode = false;
+    window.pendingDeviceType = null;
     document.getElementById('network-canvas').style.cursor = 'default';
+    
+    // Reactivar arrastre de nodos
+    if (window.network) {
+        window.network.setOptions({
+            interaction: { dragNodes: true }
+        });
+    }
     
     // Remover clase active de todos los botones
     const buttons = document.querySelectorAll('.btn');
     buttons.forEach(btn => btn.classList.remove('active'));
     
-    showNotification(`${name} agregado exitosamente`, 'success');
+    window.showNotification(`${name} agregado exitosamente`, 'success');
 }
+
+// Exportar funciones a window para compatibilidad con onclick en HTML
+window.addDevice = addDevice;
+window.createDeviceAtPosition = createDeviceAtPosition;

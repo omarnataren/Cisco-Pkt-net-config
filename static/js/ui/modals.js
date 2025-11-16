@@ -1,6 +1,4 @@
 // ✅ Importaciones optimizadas
-import { nodes, selectedNode, vlans, edges, selectedEdge, editingEdge, firstNodeConnection } from '../core/network-state.js';
-import { interfaceTypeAbbr } from '../core/network-constants.js';
 import { showNotification } from './notification.js';
 import { 
     setCurrentSwitchForComputers, 
@@ -11,24 +9,24 @@ import {
 
 //---- Manejo de modal Manage Computers Modal ----
 export function openManageComputersModal() {
-    console.log('openManageComputersModal - selectedNode:', selectedNode);
+    console.log('openManageComputersModal - window.selectedNode:', window.selectedNode);
     
-    if (!selectedNode) {
+    if (!window.selectedNode) {
     showNotification('Selecciona un switch primero', 'error');
     return;
     }
     
     // Obtener el nodo completo desde la colección
     let node;
-    if (typeof selectedNode === 'string') {
-        // Si selectedNode es un ID string, obtener el nodo completo
-        node = nodes.get(selectedNode);
-    } else if (selectedNode.id) {
-        // Si selectedNode tiene id, obtener el nodo completo
-        node = nodes.get(selectedNode.id);
+    if (typeof window.selectedNode === 'string') {
+        // Si window.selectedNode es un ID string, obtener el nodo completo
+        node = window.nodes.get(window.selectedNode);
+    } else if (window.selectedNode.id) {
+        // Si window.selectedNode tiene id, obtener el nodo completo
+        node = window.nodes.get(window.selectedNode.id);
     } else {
-        // Si selectedNode ya es el objeto completo
-        node = selectedNode;
+        // Si window.selectedNode ya es el objeto completo
+        node = window.selectedNode;
     }
     
     console.log('node obtenido:', node);
@@ -70,10 +68,10 @@ export function closeManageComputersModal() {
 //--- Manejo del Modal Edit Connection Modal ---
 // Abrir modal para editar conexión
 export function openEditConnectionModal() {
-    if (!selectedEdge) return;
+    if (!window.selectedEdge) return;
     
-    const edge = edges.get(selectedEdge);
-    editingEdge = selectedEdge;
+    const edge = window.edges.get(window.selectedEdge);
+    window.editingEdge = window.selectedEdge;
     
     const isEtherChannel = edge.data.etherChannel || edge.data.connectionType === 'etherchannel';
     
@@ -85,17 +83,17 @@ export function openEditConnectionModal() {
         document.getElementById('etherchannel-group').value = edge.data.etherChannel.group || 1;
         const ecFromType = edge.data.etherChannel.fromType || 'FastEthernet';
         const ecToType = edge.data.etherChannel.toType || 'FastEthernet';
-        document.getElementById('etherchannel-from-type').value = interfaceTypeAbbr[ecFromType] || 'fa';
+        document.getElementById('etherchannel-from-type').value = window.interfaceTypeAbbr[ecFromType] || 'fa';
         document.getElementById('etherchannel-from-range').value = edge.data.etherChannel.fromRange || '';
-        document.getElementById('etherchannel-to-type').value = interfaceTypeAbbr[ecToType] || 'fa';
+        document.getElementById('etherchannel-to-type').value = window.interfaceTypeAbbr[ecToType] || 'fa';
         document.getElementById('etherchannel-to-range').value = edge.data.etherChannel.toRange || '';
     } else {
     // Cargar datos de conexión normal
         const fromType = edge.data.fromInterface.type;
         const toType = edge.data.toInterface.type;
-        document.getElementById('edit-from-type').value = interfaceTypeAbbr[fromType] || 'fa';
+        document.getElementById('edit-from-type').value = window.interfaceTypeAbbr[fromType] || 'fa';
         document.getElementById('edit-from-number').value = edge.data.fromInterface.number;
-        document.getElementById('edit-to-type').value = interfaceTypeAbbr[toType] || 'fa';
+        document.getElementById('edit-to-type').value = window.interfaceTypeAbbr[toType] || 'fa';
         document.getElementById('edit-to-number').value = edge.data.toInterface.number;
     }
     
@@ -106,7 +104,7 @@ export function openEditConnectionModal() {
 // Cerrar modal de edición
 export function closeEditConnectionModal() {
     document.getElementById('edit-connection-modal').style.display = 'none';
-    editingEdge = null;
+    window.editingEdge = null;
 }
 
 //--- Manejo del Modal Add Computer Modal ---
@@ -127,16 +125,16 @@ export function openAddComputerModal() {
     const vlanSelect = document.getElementById('new-pc-vlan');
     vlanSelect.innerHTML = '<option value="">-- Selecciona VLAN --</option>';
     
-    if (vlans.length === 0) {
+    if (window.vlans.length === 0) {
         showNotification('No hay VLANs creadas. Crea VLANs primero.', 'error');
         return;
     }
     
-    console.log('VLANs encontradas:', vlans.length);
+    console.log('VLANs encontradas:', window.vlans.length);
     
-    // Usar directamente el array vlans, no parsear el HTML
-    for (let i = 0; i < vlans.length; i++) {
-        const vlanName = vlans[i].name; // Solo el nombre, sin el prefijo
+    // Usar directamente el array window.vlans, no parsear el HTML
+    for (let i = 0; i < window.vlans.length; i++) {
+        const vlanName = window.vlans[i].name; // Solo el nombre, sin el prefijo
         const option = document.createElement('option');
         option.value = vlanName;
         option.textContent = vlanName;
@@ -180,9 +178,16 @@ export function closeConnectionModal() {
     document.getElementById('new-normal-fields').style.display = 'block';
     document.getElementById('new-etherchannel-fields').style.display = 'none';
     
-    firstNodeConnection = null;
-    connectionMode = false;
+    window.firstNodeConnection = null;
+    window.connectionMode = false;
     document.getElementById('connect-btn').classList.remove('active');
+    
+    // Reactivar arrastre cuando se cierra el modal
+    if (window.network) {
+        window.network.setOptions({
+            interaction: { dragNodes: true }
+        });
+    }
 }
 
 //--- Cerrar modales al hacer clic fuera del contenido ---
@@ -194,9 +199,15 @@ window.onclick = function(event) {
         modal.style.display = 'none';
         // Limpiar estado si es modal de conexión
         if (modalId === 'connection-modal') {
-            firstNodeConnection = null;
-            connectionMode = false;
+            window.firstNodeConnection = null;
+            window.connectionMode = false;
             document.getElementById('connect-btn').classList.remove('active');
+            // Reactivar arrastre
+            if (window.network) {
+                window.network.setOptions({
+                    interaction: { dragNodes: true }
+                });
+            }
         }
     }
     });
@@ -207,3 +218,4 @@ window.openManageComputersModal = openManageComputersModal;
 window.closeManageComputersModal = closeManageComputersModal;
 window.openAddComputerModal = openAddComputerModal;
 window.closeAddComputerModal = closeAddComputerModal;
+window.closeConnectionModal = closeConnectionModal;

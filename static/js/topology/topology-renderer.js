@@ -1,7 +1,7 @@
 // Inicializar red
 export function initNetwork() {
     const container = document.getElementById('network-canvas');
-    const data = { nodes: nodes, edges: edges };
+    const data = { nodes: window.nodes, edges: window.edges };
     const options = {
         nodes: {
             shape: 'circle',
@@ -37,18 +37,18 @@ export function initNetwork() {
         }
     };
     
-    network = new vis.Network(container, data, options);
+    window.network = new vis.Network(container, data, options);
     
     // Eventos
-    network.on('click', function(params) {
+    window.network.on('click', function(params) {
     // Si estamos en modo posicionamiento, posicionar el dispositivo
-        if (devicePositioningMode) {
+        if (window.devicePositioningMode) {
             // Las coordenadas ya están en canvas, usar directamente
             const pos = params.pointer.canvas;
             createDeviceAtPosition(pos.x, pos.y);
             return;
         }
-        if (connectionMode && params.nodes.length > 0) {
+        if (window.connectionMode && params.nodes.length > 0) {
             handleConnectionClick(params.nodes[0]);
         } else if (params.nodes.length > 0) {
             selectNode(params.nodes[0]);
@@ -60,14 +60,14 @@ export function initNetwork() {
     });
     
     // Doble clic en edge para cambiar dirección
-    network.on('doubleClick', function(params) {
+    window.network.on('doubleClick', function(params) {
     if (params.edges.length > 0) {
         const edgeId = params.edges[0];
-        const edge = edges.get(edgeId);
+        const edge = window.edges.get(edgeId);
     
         // Solo permitir cambio en conexiones entre routers/switch cores
-        const fromNode = nodes.get(edge.from);
-        const toNode = nodes.get(edge.to);
+        const fromNode = window.nodes.get(edge.from);
+        const toNode = window.nodes.get(edge.to);
         const isRoutingEdge = (fromNode.data.type === 'router' || fromNode.data.type === 'switch_core') &&
                                 (toNode.data.type === 'router' || toNode.data.type === 'switch_core');
         
@@ -78,20 +78,20 @@ export function initNetwork() {
     });
     // Evento dragEnd: Se dispara cuando el usuario termina de mover un nodo
     // ACTUALIZA explícitamente las coordenadas en el DataSet de vis.network
-    network.on('dragEnd', function(params) {
+    window.network.on('dragEnd', function(params) {
         if (params.nodes.length > 0) {
         const nodeId = params.nodes[0];
-        const nodeData = nodes.get(nodeId);
+        const nodeData = window.nodes.get(nodeId);
     
         // El nodo ha sido movido, necesitamos actualizar explícitamente sus coordenadas
         // vis.network mueve visualmente el nodo pero NO actualiza automáticamente el DataSet
-        const pos = network.getPositions(nodeId);
+        const pos = window.network.getPositions(nodeId);
         if (pos[nodeId]) {
             const newX = pos[nodeId].x;
             const newY = pos[nodeId].y;
             
             // ACTUALIZAR el nodo en el DataSet con las nuevas coordenadas
-            nodes.update({
+            window.nodes.update({
                 id: nodeId,
                 x: newX,
                 y: newY

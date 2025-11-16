@@ -1,19 +1,23 @@
-export let network = null;
-export let nodes = new vis.DataSet([]);
-export let edges = new vis.DataSet([]);
-export let vlans = [];
-export let routerCounter = 1;
-export let switchCounter = 1;
-export let switchCoreCounter = 1;
-export let computerCounter = 1;
-export let connectionMode = false;
-export let firstNodeConnection = null;
-export let selectedNode = null;
-export let selectedEdge = null;
-export let editingEdge = null;
-export let devicePositioningMode = false;
-export let pendingDeviceType = null;
-export const MIN_ZOOM = 0.5;
-export const MAX_ZOOM = 3.0;
-// Rastreador de interfaces usadas por dispositivo
-export let usedInterfaces = {};
+// Estado global de la aplicación
+// Todas las variables se definen en window para que sean accesibles globalmente
+// y mutables desde cualquier módulo
+window.network = null;
+window.nodes = new vis.DataSet([]);
+window.edges = new vis.DataSet([]);
+window.vlans = [];
+window.routerCounter = 1;
+window.switchCounter = 1;
+window.switchCoreCounter = 1;
+window.computerCounter = 1;
+window.connectionMode = false;
+window.firstNodeConnection = null;
+window.selectedNode = null;
+window.selectedEdge = null;
+window.editingEdge = null;
+window.devicePositioningMode = false;
+window.pendingDeviceType = null;
+window.usedInterfaces = {};
+
+// Constantes
+window.MIN_ZOOM = 0.5;
+window.MAX_ZOOM = 3.0;

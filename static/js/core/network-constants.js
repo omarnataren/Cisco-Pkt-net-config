@@ -1,8 +1,10 @@
+// Constantes de configuración de red
+// Todas definidas en window para acceso global
 
 //---- Orden de interfaces para cada dispositivo----
 
 //Router
-export const ROUTER_INTERFACE_ORDER = [
+window.ROUTER_INTERFACE_ORDER = [
     // FastEthernet 0/0 a 0/1
     { type: 'FastEthernet', number: '0/0' },
     { type: 'FastEthernet', number: '0/1' },
@@ -14,7 +16,7 @@ export const ROUTER_INTERFACE_ORDER = [
 ];
 
 //Switch
-export const SWITCH_INTERFACE_ORDER = [
+window.SWITCH_INTERFACE_ORDER = [
     // FastEthernet 0/1 a 0/24
     ...Array.from({ length: 24 }, (_, i) => ({ 
     type: 'FastEthernet', 
@@ -26,7 +28,7 @@ export const SWITCH_INTERFACE_ORDER = [
 ];
 
 //Switch Core
-export const SWITCH_CORE_INTERFACE_ORDER = [
+window.SWITCH_CORE_INTERFACE_ORDER = [
     // GigabitEthernet 1/0/1 a 1/0/24
     ...Array.from({ length: 24 }, (_, i) => ({ 
     type: 'GigabitEthernet', 
@@ -44,7 +46,7 @@ export const SWITCH_CORE_INTERFACE_ORDER = [
  * Datos de interfaces disponibles por tipo
  * Solo contiene los números, el tipo se maneja por separado
  */
-export const interfaceData = {
+window.interfaceData = {
     fa: [
 '0/0', '0/1', '0/2', '0/3', '0/4', '0/5', '0/6', '0/7',
 '0/8', '0/9', '0/10', '0/11', '0/12', '0/13', '0/14', '0/15',
@@ -64,7 +66,7 @@ export const interfaceData = {
 /**
  * Mapeo de tipos abreviados a nombres completos para mostrar en UI
  */
-export const interfaceTypeNames = {
+window.interfaceTypeNames = {
     'fa': 'FastEthernet',
     'gi': 'GigabitEthernet',
     'eth': 'Ethernet'
@@ -73,7 +75,7 @@ export const interfaceTypeNames = {
 /**
  * Mapeo inverso: nombres completos a abreviaciones
  */
-export const interfaceTypeAbbr = {
+window.interfaceTypeAbbr = {
     'FastEthernet': 'fa',
     'GigabitEthernet': 'gi',
     'Ethernet': 'eth'

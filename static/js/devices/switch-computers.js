@@ -1,6 +1,4 @@
 // ✅ Importaciones optimizadas
-import { nodes } from '../core/network-state.js';
-import { interfaceData, interfaceTypeNames } from '../core/network-constants.js';
 import { showNotification } from '../ui/notification.js';
 
 // Variable de módulo (no exportada, uso interno del modal)
@@ -93,7 +91,7 @@ export function saveNewComputer() {
     
     console.log('Computadora agregada:', currentSwitchForComputers.data.computers);
     
-    nodes.update(currentSwitchForComputers);
+    window.nodes.update(currentSwitchForComputers);
     updateComputersList();
     closeAddComputerModal();
     showNotification(`Computadora ${name} agregada`);
@@ -103,7 +101,7 @@ export function saveNewComputer() {
 export function removeComputer(index) {
     if (confirm('¿Eliminar esta computadora?')) {
         currentSwitchForComputers.data.computers.splice(index, 1);
-        nodes.update(currentSwitchForComputers);
+        window.nodes.update(currentSwitchForComputers);
         updateComputersList();
         showNotification('Computadora eliminada');
     }
@@ -119,8 +117,8 @@ export function updateNewPcPortList() {
     portSelect.innerHTML = '<option value="">Seleccionar interfaz...</option>';
     
     // Agregar interfaces del tipo seleccionado
-    const interfaces = interfaceData[selectedType] || [];
-    const typeName = interfaceTypeNames[selectedType] || '';
+    const interfaces = window.interfaceData[selectedType] || [];
+    const typeName = window.interfaceTypeNames[selectedType] || '';
     
     interfaces.forEach(ifaceNumber => {
         const option = document.createElement('option');

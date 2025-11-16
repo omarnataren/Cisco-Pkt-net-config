@@ -1,8 +1,8 @@
 // Funciones de zoom
 export function zoomIn() {
-    const currentScale = network.getScale();
+    const currentScale = window.network.getScale();
     if (currentScale < MAX_ZOOM) {
-        network.moveTo({
+        window.network.moveTo({
             scale: Math.min(currentScale * 1.2, MAX_ZOOM),
             animation: { duration: 200, easingFunction: 'easeInOutQuad' }
         });
@@ -10,9 +10,9 @@ export function zoomIn() {
 }
 
 export function zoomOut() {
-    const currentScale = network.getScale();
+    const currentScale = window.network.getScale();
     if (currentScale > MIN_ZOOM) {
-        network.moveTo({
+        window.network.moveTo({
             scale: Math.max(currentScale / 1.2, MIN_ZOOM),
             animation: { duration: 200, easingFunction: 'easeInOutQuad' }
         });

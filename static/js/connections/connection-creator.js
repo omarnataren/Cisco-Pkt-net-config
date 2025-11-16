@@ -10,14 +10,14 @@ export function saveConnection() {
     // Encontrar el ID del nodo destino
     let toNodeId = null;
     const toNameElement = document.getElementById('conn-to-name');
-    nodes.forEach(node => {
+    window.nodes.forEach(node => {
         if (node.data.name === toNameElement.textContent) {
             toNodeId = node.id;
         }
     });
     
-    const fromNode = nodes.get(firstNodeConnection);
-    const toNode = nodes.get(toNodeId);
+    const fromNode = window.nodes.get(window.firstNodeConnection);
+    const toNode = window.nodes.get(toNodeId);
     
     // Determinar si debe tener direcciones de ruteo (solo router o switch_core)
     const isRoutingEdge = (fromNode.data.type === 'router' || fromNode.data.type === 'switch_core') &&
@@ -28,9 +28,9 @@ export function saveConnection() {
     
     let edgeData = {
         id: edgeId,
-        from: firstNodeConnection,
+        from: window.firstNodeConnection,
         to: toNodeId,
-        arrows: getArrowsForDirection(initialDirection)
+        arrows: window.getArrowsForDirection(initialDirection)
     };
     
     if (connectionType === 'etherchannel') {
@@ -38,20 +38,20 @@ export function saveConnection() {
         const protocol = document.getElementById('new-etherchannel-protocol').value;
         const group = parseInt(document.getElementById('new-etherchannel-group').value);
         const fromTypeAbbr = document.getElementById('new-etherchannel-from-type').value;
-        const fromType = interfaceTypeNames[fromTypeAbbr] || fromTypeAbbr;
+        const fromType = window.interfaceTypeNames[fromTypeAbbr] || fromTypeAbbr;
         const fromRange = document.getElementById('new-etherchannel-from-range').value.trim();
         const toTypeAbbr = document.getElementById('new-etherchannel-to-type').value;
-        const toType = interfaceTypeNames[toTypeAbbr] || toTypeAbbr;
+        const toType = window.interfaceTypeNames[toTypeAbbr] || toTypeAbbr;
         const toRange = document.getElementById('new-etherchannel-to-range').value.trim();
 
         if (!fromRange || !toRange) {
-            showNotification('Completa los rangos de interfaces de origen y destino', 'error');
+            window.showNotification('Completa los rangos de interfaces de origen y destino', 'error');
             return;
         }
         // Validar formato de rango (ej: 0/1-3)
         const rangePattern = /^\d+\/\d+-\d+$/;
         if (!rangePattern.test(fromRange) || !rangePattern.test(toRange)) {
-            showNotification('Formato de rango inválido. Usa formato: 0/1-3', 'error');
+            window.showNotification('Formato de rango inválido. Usa formato: 0/1-3', 'error');
             return;
         }
         // Datos de EtherChannel
@@ -94,10 +94,10 @@ export function saveConnection() {
                 fromNumber = fromIface.number;
             } else {
                 const fromTypeAbbr = document.getElementById('conn-from-type').value;
-                fromType = interfaceTypeNames[fromTypeAbbr] || fromTypeAbbr;
+                fromType = window.interfaceTypeNames[fromTypeAbbr] || fromTypeAbbr;
                 fromNumber = document.getElementById('conn-from-number').value.trim();
                 if (!fromNumber) {
-                    showNotification('Completa la interfaz de origen', 'error');
+                    window.showNotification('Completa la interfaz de origen', 'error');
                     return;
                 }
             }
@@ -109,24 +109,24 @@ export function saveConnection() {
                 toNumber = toIface.number;
             } else {
                 const toTypeAbbr = document.getElementById('conn-to-type').value;
-                toType = interfaceTypeNames[toTypeAbbr] || toTypeAbbr;
+                toType = window.interfaceTypeNames[toTypeAbbr] || toTypeAbbr;
                 toNumber = document.getElementById('conn-to-number').value.trim();
                 if (!toNumber) {
-                    showNotification('Completa la interfaz de destino', 'error');
+                    window.showNotification('Completa la interfaz de destino', 'error');
                     return;
                 }
             }
         } else {
             // Leer del formulario (conexión manual completa)
             const fromTypeAbbr = document.getElementById('conn-from-type').value;
-            fromType = interfaceTypeNames[fromTypeAbbr] || fromTypeAbbr;
+            fromType = window.interfaceTypeNames[fromTypeAbbr] || fromTypeAbbr;
             fromNumber = document.getElementById('conn-from-number').value.trim();
             const toTypeAbbr = document.getElementById('conn-to-type').value;
-            toType = interfaceTypeNames[toTypeAbbr] || toTypeAbbr;
+            toType = window.interfaceTypeNames[toTypeAbbr] || toTypeAbbr;
             toNumber = document.getElementById('conn-to-number').value.trim();
             
             if (!fromNumber || !toNumber) {
-                showNotification('Completa todos los campos', 'error');
+                window.showNotification('Completa todos los campos', 'error');
                 return;
             }
         }
@@ -139,11 +139,15 @@ export function saveConnection() {
     }
     
     // Agregar la conexión al grafo
-    edges.add(edgeData);
+    window.edges.add(edgeData);
     
-    closeConnectionModal();
-    showNotification('Conexión creada');
-    connectionMode = false;
-    firstNodeConnection = null;
+    window.closeConnectionModal();
+    window.showNotification('Conexión creada');
+    window.connectionMode = false;
+    window.firstNodeConnection = null;
     document.getElementById('connect-btn').classList.remove('active');
 }
+
+// Exportar funciones a window para compatibilidad con onclick en HTML
+window.saveConnection = saveConnection;
+// closeConnectionModal está definido en modals.js

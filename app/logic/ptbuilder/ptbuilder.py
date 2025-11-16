@@ -3,7 +3,7 @@ MÓDULO: ptbuilder.py
 DESCRIPCIÓN: Generador de scripts para Packet Tracer Builder
 """
 
-from app.logic.ptbuilder.interface_utils import transform_coordinates_to_ptbuilder, expand_interface_range
+from app.logic.ptbuilder.interface_utils import transform_coordinates_to_ptbuilder, expand_interface_range, format_config_for_ptbuilder
 
 
 def generate_ptbuilder_script(topology, router_configs, computers):

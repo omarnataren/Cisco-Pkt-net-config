@@ -3,6 +3,7 @@ MÓDULO: bfs_routing.py
 DESCRIPCIÓN: Algoritmo BFS para generación de tablas de ruteo estático
 """
 
+import ipaddress
 from collections import deque
 
 

@@ -851,7 +851,7 @@ def handle_visual_topology(topology):
         ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
         config_files_content['ptbuilder'] = ptbuilder_content
         
-        return render_template("router_results.html", 
+        return render_template("success.html", 
                              routers=router_configs,
                              vlan_summary=vlan_summary)
     

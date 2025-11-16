@@ -9,3 +9,6 @@ export function showNotification(message, type = 'success') {
 notification.style.display = 'none';
     }, 3000);
 }
+
+// ✅ Exponer a window
+window.showNotification = showNotification;

@@ -11,7 +11,7 @@ import './ui/zoom-controls.js';
 import './core/selection-manager.js';
 import './devices/device-editor.js';
 import './devices/switch-computers.js';
-import './devices/device-factory.js';
+import { addDevice, createDeviceAtPosition } from './devices/device-factory.js';
 import './connections/etherchannel-helpers.js';
 import './connections/routing-direction.js';
 import './connections/connection-mode.js';
@@ -24,12 +24,18 @@ import './ui/property-panel.js';
 import './ui/modals.js';
 
 // CAPA 5: TOPOLOGÍA Y EXPORTACIÓN (Depende de todo)
-import './topology/topology-renderer.js';
+import { initNetwork } from './topology/topology-renderer.js';
 import './export/topology-serializer.js';
+
+// ✅ EXPORTAR FUNCIONES CRÍTICAS A WINDOW INMEDIATAMENTE
+window.addDevice = addDevice;
+window.createDeviceAtPosition = createDeviceAtPosition;
+window.initNetwork = initNetwork;
 
 // INICIALIZACIÓN
 window.onload = function() {
     console.log('Inicializando aplicación...');
+    console.log('window.addDevice disponible:', typeof window.addDevice);
     initNetwork();
     console.log('Aplicación inicializada correctamente');
 };

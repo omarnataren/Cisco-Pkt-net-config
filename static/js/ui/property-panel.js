@@ -1,5 +1,4 @@
 // ✅ Importaciones optimizadas
-import { nodes, edges } from '../core/network-state.js';
 
 // Mostrar propiedades de dispositivo
 export function showDeviceProperties(node) {
@@ -35,7 +34,7 @@ export function showDeviceProperties(node) {
     `;
     
     // Listar conexiones
-    const conns = edges.get().filter(e => e.from === node.id || e.to === node.id);
+    const conns = window.edges.get().filter(e => e.from === node.id || e.to === node.id);
     const connDiv = document.getElementById('device-connections');
     
     if (conns.length === 0) {
@@ -43,7 +42,7 @@ export function showDeviceProperties(node) {
     } else {
     conns.forEach(edge => {
         const otherNodeId = edge.from === node.id ? edge.to : edge.from;
-        const otherNode = nodes.get(otherNodeId);
+        const otherNode = window.nodes.get(otherNodeId);
         const isFrom = edge.from === node.id;
         const myInterface = isFrom ? edge.data.fromInterface : edge.data.toInterface;
         
@@ -62,9 +61,9 @@ export function showDeviceProperties(node) {
 
 // Mostrar propiedades de conexión
 export function showEdgeProperties(edgeId) {
-    const edge = edges.get(edgeId);
-    const fromNode = nodes.get(edge.from);
-    const toNode = nodes.get(edge.to);
+    const edge = window.edges.get(edgeId);
+    const fromNode = window.nodes.get(edge.from);
+    const toNode = window.nodes.get(edge.to);
     
     const routingDirection = edge.data.routingDirection || 'bidirectional';
     const isEtherChannel = edge.data.etherChannel || edge.data.connectionType === 'etherchannel';
