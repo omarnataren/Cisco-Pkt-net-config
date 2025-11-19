@@ -7,7 +7,7 @@ FECHA: 2025
 
 import ipaddress
 import json
-from flask import render_template
+from flask import render_template, current_app
 
 # Imports de módulos propios
 from app.core.models import Combo
@@ -405,12 +405,26 @@ def handle_visual_topology(topology):
                         vlan_num = ''.join(filter(str.isdigit, vlan_name))
                         if vlan_num:
                             prefix = int(vlan['prefix'])
+                            
+                            # ✅ VALIDACIÓN: Omitir redes /31 y /32 (no soportan DHCP)
+                            if prefix >= 31:
+                                print(f"⚠️  ADVERTENCIA: VLAN {vlan_name} con prefijo /{prefix} omitida.")
+                                print(f"   Las redes /31 y /32 no tienen suficientes IPs para DHCP.")
+                                print(f"   Usa un prefijo máximo de /30 para al menos 2 hosts.")
+                                continue
+                            
                             # Generar red
                             blocks = generate_blocks(base, prefix, 1, used)
                             if blocks:
                                 network = blocks[0]
                                 hosts = list(network.hosts())
-                                gateway = hosts[-1] if hosts else network.network_address + 1
+                                
+                                # Verificar que hay suficientes hosts (mínimo 2)
+                                if len(hosts) < 2:
+                                    print(f"⚠️  ADVERTENCIA: VLAN {vlan_name} no tiene suficientes IPs.")
+                                    continue
+                                
+                                gateway = hosts[-1]
                                 
                                 config_lines.append(f"int {iface_full}.{vlan_num}")
                                 config_lines.append(f"encapsulation dot1Q {vlan_num}")
@@ -437,8 +451,14 @@ def handle_visual_topology(topology):
                     hosts = list(network.hosts())
                     vlan_num = vlan_data['termination']
                     
-                    # Excluded addresses ANTES del pool
-                    config_lines.append(f"ip dhcp excluded-address {hosts[0]} {hosts[9] if len(hosts) > 9 else hosts[-1]}")
+                    # ✅ VALIDACIÓN: Solo crear pool si hay suficientes hosts
+                    if len(hosts) < 2:
+                        print(f"⚠️  Omitiendo pool DHCP para VLAN{vlan_num} (insuficientes IPs)")
+                        continue
+                    
+                    # Excluded addresses ANTES del pool (primeras 10 IPs o todas menos la última)
+                    excluded_end = hosts[9] if len(hosts) > 10 else hosts[-2]
+                    config_lines.append(f"ip dhcp excluded-address {hosts[0]} {excluded_end}")
                     config_lines.append("")
                     
                     config_lines.append(f"ip dhcp pool vlan{vlan_num}")
@@ -630,12 +650,24 @@ def handle_visual_topology(topology):
                     vlan_num = ''.join(filter(str.isdigit, vlan['name']))
                     if vlan_num:
                         prefix = int(vlan['prefix'])
+                        
+                        # ✅ VALIDACIÓN: Omitir redes /31 y /32
+                        if prefix >= 31:
+                            print(f"⚠️  ADVERTENCIA: VLAN {vlan['name']} con prefijo /{prefix} omitida en {name}.")
+                            continue
+                        
                         # Generar red
                         blocks = generate_blocks(base, prefix, 1, used)
                         if blocks:
                             network = blocks[0]
                             hosts = list(network.hosts())
-                            gateway = hosts[-1] if hosts else network.network_address + 1
+                            
+                            # Verificar suficientes hosts
+                            if len(hosts) < 2:
+                                print(f"⚠️  ADVERTENCIA: VLAN {vlan['name']} no tiene suficientes IPs en {name}.")
+                                continue
+                            
+                            gateway = hosts[-1]
                             
                             # Interface VLAN
                             config_lines.append(f"interface vlan {vlan_num}")
@@ -659,7 +691,14 @@ def handle_visual_topology(topology):
                 hosts = list(network.hosts())
                 vlan_num = vlan_data['termination']
                 
-                config_lines.append(f"ip dhcp excluded-address {hosts[0]} {hosts[9] if len(hosts) > 9 else hosts[-1]}")
+                # ✅ VALIDACIÓN: Solo crear pool si hay suficientes hosts
+                if len(hosts) < 2:
+                    print(f"⚠️  Omitiendo pool DHCP para VLAN{vlan_num} en {name} (insuficientes IPs)")
+                    continue
+                
+                # Excluded addresses (primeras 10 IPs o todas menos la última)
+                excluded_end = hosts[9] if len(hosts) > 10 else hosts[-2]
+                config_lines.append(f"ip dhcp excluded-address {hosts[0]} {excluded_end}")
                 config_lines.append(f"ip dhcp pool VLAN{vlan_num}")
                 config_lines.append(f" network {network.network_address} {network.netmask}")
                 config_lines.append(f" default-router {vlan_data['gateway']}")
@@ -692,9 +731,8 @@ def handle_visual_topology(topology):
             ssh_config = generate_ssh_config()
             config_lines.extend(ssh_config)
             
-            # Obtener VLANs de computadoras conectadas (búsquedas O(1))
+            # Obtener edges del switch
             switch_edges = edges_by_node.get(switch_id, [])
-            vlans_used = set()
             computer_ports = []
             
             # Procesar computadoras del antiguo sistema (nodos computer conectados)
@@ -707,8 +745,6 @@ def handle_visual_topology(topology):
                     if vlan_name:
                         vlan_num = ''.join(filter(str.isdigit, vlan_name))
                         if vlan_num:
-                            vlans_used.add((vlan_num, vlan_name))
-                            
                             is_from = edge['from'] == switch_id
                             iface_data = edge['data']['fromInterface'] if is_from else edge['data']['toInterface']
                             iface_full = f"{iface_data['type']}{iface_data['number']}"
@@ -726,8 +762,6 @@ def handle_visual_topology(topology):
                     if vlan_name:
                         vlan_num = ''.join(filter(str.isdigit, vlan_name))
                         if vlan_num:
-                            vlans_used.add((vlan_num, vlan_name))
-                            
                             port_full = f"{pc['portType']}{pc['portNumber']}"
                             computer_ports.append({
                                 'interface': port_full,
@@ -735,13 +769,16 @@ def handle_visual_topology(topology):
                                 'computer': pc['name']
                             })
             
-            # Crear VLANs
-            for vlan_num, vlan_name in sorted(vlans_used):
-                config_lines.append(f"vlan {vlan_num}")
-                config_lines.append(f" name {vlan_name.lower()}")
+            # ✅ CREAR TODAS LAS VLANs GLOBALES (no solo las que tienen PCs)
+            # Esto garantiza que el trunk funcione correctamente entre switches
+            for vlan in vlans:
+                vlan_num = ''.join(filter(str.isdigit, vlan['name']))
+                if vlan_num:
+                    config_lines.append(f"vlan {vlan_num}")
+                    config_lines.append(f" name {vlan['name'].lower()}")
             
-            # Solo agregar exit si hay VLANs creadas
-            if vlans_used:
+            # Agregar exit después de crear VLANs
+            if vlans:
                 config_lines.append("exit")
                 config_lines.append("")
             
@@ -850,6 +887,9 @@ def handle_visual_topology(topology):
         # Generar script PTBuilder y guardar en config_files_content
         ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
         config_files_content['ptbuilder'] = ptbuilder_content
+        
+        # Transferir al config de Flask para que las rutas de descarga puedan acceder
+        current_app.config['CONFIG_FILES_CONTENT'] = config_files_content
         
         return render_template("success.html", 
                              routers=router_configs,

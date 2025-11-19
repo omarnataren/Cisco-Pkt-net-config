@@ -6,6 +6,42 @@ DESCRIPCIÓN: Generador de scripts para Packet Tracer Builder
 from app.logic.ptbuilder.interface_utils import transform_coordinates_to_ptbuilder, expand_interface_range, format_config_for_ptbuilder
 
 
+def get_cable_type(from_device_type, to_device_type):
+    """
+    Determina el tipo de cable según los dispositivos conectados.
+    
+    Reglas de cableado:
+    - Cable directo (straight): Dispositivos de diferente tipo
+      (router-switch, switch-pc, router-pc)
+    - Cable cruzado (cross): Dispositivos del mismo tipo
+      (router-router, switch-switch, pc-pc)
+    
+    Args:
+        from_device_type: Tipo del dispositivo origen ('router', 'switch', 'switch_core', 'computer')
+        to_device_type: Tipo del dispositivo destino
+    
+    Returns:
+        str: 'straight' o 'cross'
+    """
+    # Normalizar tipos: switch y switch_core son equivalentes para cableado
+    device_category = {
+        'router': 'router',
+        'switch': 'switch',
+        'switch_core': 'switch',  # Switch core se comporta como switch en capa 2
+        'computer': 'computer'
+    }
+    
+    from_category = device_category.get(from_device_type, from_device_type)
+    to_category = device_category.get(to_device_type, to_device_type)
+    
+    # Si son del mismo tipo → cable cruzado
+    if from_category == to_category:
+        return 'cross'
+    
+    # Si son de diferente tipo → cable directo
+    return 'straight'
+
+
 def generate_ptbuilder_script(topology, router_configs, computers):
     """
     Genera script PTBuilder para crear topología en Packet Tracer
@@ -104,10 +140,13 @@ def generate_ptbuilder_script(topology, router_configs, computers):
             print(f"   Interfaces expandidas FROM: {from_interfaces}")
             print(f"   Interfaces expandidas TO: {to_interfaces}")
             
+            # Determinar tipo de cable según dispositivos
+            cable_type = get_cable_type(from_node['data']['type'], to_node['data']['type'])
+            
             # Generar un addLink por cada par de interfaces del bundle
             for from_if, to_if in zip(from_interfaces, to_interfaces):
-                lines.append(f'addLink("{from_name}", "{from_if}", "{to_name}", "{to_if}", "straight");')
-                print(f"   ✅ Cable generado: {from_if} ↔ {to_if}")
+                lines.append(f'addLink("{from_name}", "{from_if}", "{to_name}", "{to_if}", "{cable_type}");')
+                print(f"   ✅ Cable generado ({cable_type}): {from_if} ↔ {to_if}")
         
         # Conexión normal (no es EtherChannel)
         elif 'data' in edge and 'fromInterface' in edge['data'] and 'toInterface' in edge['data']:
@@ -127,9 +166,12 @@ def generate_ptbuilder_script(topology, router_configs, computers):
             # DEBUG: Mostrar interfaces construidas
             print(f"   From Interface construida: {from_iface}")
             print(f"   To Interface construida: {to_iface}")
-      
             
-            lines.append(f'addLink("{from_name}", "{from_iface}", "{to_name}", "{to_iface}", "straight");')
+            # Determinar tipo de cable según dispositivos conectados
+            cable_type = get_cable_type(from_node['data']['type'], to_node['data']['type'])
+            print(f"   Tipo de cable: {cable_type} ({from_node['data']['type']} → {to_node['data']['type']})")
+            
+            lines.append(f'addLink("{from_name}", "{from_iface}", "{to_name}", "{to_iface}", "{cable_type}");')
         else:
             print(f"⚠️ Advertencia: Conexión sin interfaces definidas entre {from_name} y {to_name}")
     
@@ -139,11 +181,12 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         device_name = router_config['name']
         config_lines = router_config['config']
         
-        # Reformatear configuración para PTBuilder (agregar exit\nenable\nconf t antes de cada interfaz)
+        # Reformatear configuración para PTBuilder
         formatted_config = format_config_for_ptbuilder(config_lines)
         
         # Convertir a string con \n como separador
-        config_text = "\\n".join([line for line in formatted_config if line.strip()])
+        # IMPORTANTE: NO filtrar con line.strip() - mantener TODAS las líneas con su indentación
+        config_text = "\\n".join(formatted_config)
         config_text = config_text.replace('"', '\\"')
         lines.append(f'configureIosDevice("{device_name}", "{config_text}");')
     
