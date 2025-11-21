@@ -1,12 +1,25 @@
 // Agregar VLAN
 export function addVLAN() {
     const name = document.getElementById('vlan-name').value.trim();
-    const prefix = document.getElementById('vlan-prefix').value;
+    const prefix = parseInt(document.getElementById('vlan-prefix').value);
     
     if (!name) {
         showNotification('Ingresa un nombre para la VLAN', 'error');
         return;
     }
+    
+    // ✅ VALIDACIÓN: Rechazar prefijos /31 y /32 (no soportan DHCP)
+    if (prefix >= 31) {
+        showNotification('⚠️ Error: Los prefijos /31 y /32 no soportan DHCP. Usa máximo /30 (4 IPs).', 'error');
+        return;
+    }
+    
+    // Validar rango de prefijo
+    if (prefix < 8 || prefix > 30 || isNaN(prefix)) {
+        showNotification('⚠️ El prefijo debe estar entre /8 y /30', 'error');
+        return;
+    }
+    
     // Verificar que no exista
     if (window.vlans.find(v => v.name === name)) {
         showNotification('Esta VLAN ya existe', 'error');
@@ -15,8 +28,9 @@ export function addVLAN() {
     
     window.vlans.push({ name: name, prefix: prefix });
     document.getElementById('vlan-name').value = '';
+    document.getElementById('vlan-prefix').value = '';
     updateVLANList();
-    showNotification('VLAN ' + name + ' agregada');
+    showNotification('✅ VLAN ' + name + ' agregada (/' + prefix + ')');
 }
 
 // Actualizar lista de VLANs
