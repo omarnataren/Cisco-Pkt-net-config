@@ -43,12 +43,13 @@ export function handleConnectionClick(nodeId) {
         const fromNode = window.nodes.get(window.firstNodeConnection);
         const toNode = window.nodes.get(nodeId);
 
-        // Auto-asignar interfaces para routers y switches
+        // Auto-asignar interfaces (modificado: incluye computadoras)
         let fromInterface = null;
         let toInterface = null;
         
-        // Asignar interfaz para el nodo origen (router, switch o switch_core)
-        if (fromNode.data.type === 'router' || fromNode.data.type === 'switch' || fromNode.data.type === 'switch_core') {
+        const autoAssignTypes = ['router', 'switch', 'switch_core', 'computer'];
+        
+        if (autoAssignTypes.includes(fromNode.data.type)) {
             const fromModel = fromNode.data.model || null;
             fromInterface = window.getNextAvailableInterface(fromNode.data.name, fromNode.data.type, fromModel);
             if (!fromInterface) {
@@ -57,12 +58,11 @@ export function handleConnectionClick(nodeId) {
                 return;
             }
         }
-        // Asignar interfaz para el nodo destino (router, switch o switch_core)
-        if (toNode.data.type === 'router' || toNode.data.type === 'switch' || toNode.data.type === 'switch_core') {
+        
+        if (autoAssignTypes.includes(toNode.data.type)) {
             const toModel = toNode.data.model || null;
             toInterface = window.getNextAvailableInterface(toNode.data.name, toNode.data.type, toModel);
             if (!toInterface) {
-                // Liberar la interfaz del origen si ya se asignó
                 if (fromInterface) {
                     window.releaseInterface(fromNode.data.name, fromInterface.type, fromInterface.number);
                 }

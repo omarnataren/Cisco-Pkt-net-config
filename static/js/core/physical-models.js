@@ -182,6 +182,9 @@ window.setDeviceMode = function(mode) {
     window.edges.clear();
     window.vlans = [];
     
+    // Limpiar cache de interfaces (modificado)
+    window.usedInterfaces = {};
+    
     // Resetear contadores
     window.routerCounter = 1;
     window.switchCounter = 1;

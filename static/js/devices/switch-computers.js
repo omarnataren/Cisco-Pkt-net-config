@@ -45,22 +45,51 @@ export function updateComputersList() {
     });
 }
 
-// Guardar nueva computadora desde modal
+/**
+ * Asigna automáticamente la siguiente interfaz disponible del switch
+ * Usa el sistema unificado de detección de interfaces
+ * @returns {object} - {portType, portNumber} o null si no hay disponibles
+ */
+function getNextAvailablePortForComputer() {
+    const switchNode = currentSwitchForComputers;
+    if (!switchNode) return null;
+    
+    // Usar el sistema unificado de detección
+    const usedInterfaces = window.scanUsedInterfaces(switchNode.data.name);
+    
+    const switchType = switchNode.data.type;
+    let interfaceOrder;
+    
+    if (switchType === 'switch') {
+        interfaceOrder = window.SWITCH_INTERFACE_ORDER;
+    } else if (switchType === 'switch_core') {
+        interfaceOrder = window.SWITCH_CORE_INTERFACE_ORDER;
+    } else {
+        return null;
+    }
+    
+    for (let iface of interfaceOrder) {
+        const key = `${iface.type}${iface.number}`;
+        if (!usedInterfaces.includes(key)) {
+            return {
+                portType: iface.type,
+                portNumber: iface.number
+            };
+        }
+    }
+    
+    return null;
+}
+
+// Guardar nueva computadora desde modal (modificado: auto-asignación de puerto)
 export function saveNewComputer() {
     const name = document.getElementById('new-pc-name').value.trim();
-    const portType = document.getElementById('new-pc-port-type').value;
-    const portNumber = document.getElementById('new-pc-port-number').value.trim();
     const vlan = document.getElementById('new-pc-vlan').value;
     
-    console.log('Datos de nueva PC:', { name, portType, portNumber, vlan });
+    console.log('Datos de nueva PC:', { name, vlan });
     
     if (!name) {
         showNotification('Ingresa el nombre de la PC', 'error');
-        return;
-    }
-    
-    if (!portNumber) {
-        showNotification('Selecciona el puerto del switch', 'error');
         return;
     }
     
@@ -69,69 +98,64 @@ export function saveNewComputer() {
         return;
     }
     
-    // Verificar que el puerto no esté en uso
-    const computers = currentSwitchForComputers.data.computers || [];
-    const portInUse = computers.some(pc => pc.portType === portType && pc.portNumber === portNumber);
-    if (portInUse) {
-        showNotification('Ese puerto ya está en uso', 'error');
+    const availablePort = getNextAvailablePortForComputer();
+    if (!availablePort) {
+        showNotification('No hay puertos disponibles en el switch', 'error');
         return;
     }
     
-    // Agregar computadora
     if (!currentSwitchForComputers.data.computers) {
         currentSwitchForComputers.data.computers = [];
     }
     
     currentSwitchForComputers.data.computers.push({
         name: name,
-        portType: portType,
-        portNumber: portNumber,
+        portType: availablePort.portType,
+        portNumber: availablePort.portNumber,
         vlan: vlan
     });
     
     console.log('Computadora agregada:', currentSwitchForComputers.data.computers);
     
+    // Actualizar cache de interfaces usado
+    if (!window.usedInterfaces[currentSwitchForComputers.data.name]) {
+        window.usedInterfaces[currentSwitchForComputers.data.name] = [];
+    }
+    const portKey = `${availablePort.portType}${availablePort.portNumber}`;
+    if (!window.usedInterfaces[currentSwitchForComputers.data.name].includes(portKey)) {
+        window.usedInterfaces[currentSwitchForComputers.data.name].push(portKey);
+    }
+    
     window.nodes.update(currentSwitchForComputers);
     updateComputersList();
     closeAddComputerModal();
-    showNotification(`Computadora ${name} agregada`);
+    showNotification(`Computadora ${name} agregada en ${availablePort.portType}${availablePort.portNumber}`);
 }
 
-// Eliminar computadora
+// Eliminar computadora (modificado: actualizar cache)
 export function removeComputer(index) {
     if (confirm('¿Eliminar esta computadora?')) {
+        const removedPc = currentSwitchForComputers.data.computers[index];
         currentSwitchForComputers.data.computers.splice(index, 1);
+        
+        // Actualizar cache de interfaces
+        if (window.usedInterfaces[currentSwitchForComputers.data.name]) {
+            const portKey = `${removedPc.portType}${removedPc.portNumber}`;
+            const idx = window.usedInterfaces[currentSwitchForComputers.data.name].indexOf(portKey);
+            if (idx > -1) {
+                window.usedInterfaces[currentSwitchForComputers.data.name].splice(idx, 1);
+            }
+        }
+        
         window.nodes.update(currentSwitchForComputers);
         updateComputersList();
         showNotification('Computadora eliminada');
     }
 }
 
-//Actualiza la lista de puertos disponibles para agregar PCs
-export function updateNewPcPortList() {
-    const typeSelect = document.getElementById('new-pc-port-type');
-    const portSelect = document.getElementById('new-pc-port-number');
-    const selectedType = typeSelect.value;
-    
-    // Limpiar opciones previas
-    portSelect.innerHTML = '<option value="">Seleccionar interfaz...</option>';
-    
-    // Agregar interfaces del tipo seleccionado
-    const interfaces = window.interfaceData[selectedType] || [];
-    const typeName = window.interfaceTypeNames[selectedType] || '';
-    
-    interfaces.forEach(ifaceNumber => {
-        const option = document.createElement('option');
-        option.value = ifaceNumber;  // ✅ Solo el número (ej: "0/1" o "1/0/1")
-        option.textContent = typeName + ifaceNumber;  // Para mostrar (ej: "FastEthernet0/1" o "GigabitEthernet1/0/1")
-        portSelect.appendChild(option);
-    });
-}
-
-// ✅ Exponer funciones globalmente para compatibilidad con HTML onclick
+// Exponer funciones globalmente para compatibilidad con HTML onclick
 window.updateComputersList = updateComputersList;
 window.removeComputer = removeComputer;
 window.saveNewComputer = saveNewComputer;
-window.updateNewPcPortList = updateNewPcPortList;
 window.setCurrentSwitchForComputers = setCurrentSwitchForComputers;
 window.getCurrentSwitchForComputers = getCurrentSwitchForComputers;

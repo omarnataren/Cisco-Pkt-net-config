@@ -41,6 +41,12 @@ window.SWITCH_CORE_INTERFACE_ORDER = [
     })),
 ];
 
+//Computer
+window.COMPUTER_INTERFACE_ORDER = [
+    { type: 'FastEthernet', number: '0' },
+    { type: 'GigabitEthernet', number: '0' }
+];
+
 
 /**
  * Datos de interfaces disponibles por tipo

@@ -1,10 +1,9 @@
-// ✅ Importaciones optimizadas
+// Importaciones optimizadas
 import { showNotification } from './notification.js';
 import { 
     setCurrentSwitchForComputers, 
     getCurrentSwitchForComputers,
-    updateComputersList,
-    updateNewPcPortList
+    updateComputersList
 } from '../devices/switch-computers.js';
 
 //---- Manejo de modal Manage Computers Modal ----
@@ -141,9 +140,6 @@ export function openAddComputerModal() {
         vlanSelect.appendChild(option);
     }
     
-    // Inicializar lista de puertos
-    updateNewPcPortList();
-    
     console.log('Abriendo modal...');
     document.getElementById('add-computer-modal').style.display = 'block';
 }
@@ -213,9 +209,11 @@ window.onclick = function(event) {
     });
 };
 
-// ✅ Exponer funciones globalmente para compatibilidad con HTML onclick
+// Exponer funciones globalmente para compatibilidad con HTML onclick
 window.openManageComputersModal = openManageComputersModal;
 window.closeManageComputersModal = closeManageComputersModal;
+window.openEditConnectionModal = openEditConnectionModal;
+window.closeEditConnectionModal = closeEditConnectionModal;
 window.openAddComputerModal = openAddComputerModal;
 window.closeAddComputerModal = closeAddComputerModal;
 window.closeConnectionModal = closeConnectionModal;
