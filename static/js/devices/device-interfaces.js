@@ -7,53 +7,58 @@
  * @returns {object|null} - {type, number} o null si no hay disponibles
  */
 export function getNextAvailableInterface(deviceName, deviceType) {
-    // Inicializar rastreador si no existe
-    if (!window.usedInterfaces[deviceName]) {
-        window.usedInterfaces[deviceName] = [];
-    }
-    
-    if (deviceType === 'router') {
-        // Para routers, seguir el orden estricto
-        for (let iface of window.ROUTER_INTERFACE_ORDER) {
-            const key = `${iface.type}${iface.number}`;
-            if (!window.usedInterfaces[deviceName].includes(key)) {
-                window.usedInterfaces[deviceName].push(key);
-                return { type: iface.type, number: iface.number };
-            }
-        }
-        console.error(`No hay más interfaces disponibles para el router ${deviceName}`);
-        return null;
-    }
-    
-    if (deviceType === 'switch') {
-        // Para switches, seguir el orden: FastEthernet 0/1-24, luego GigabitEthernet 0/1-2
-        for (let iface of window.SWITCH_INTERFACE_ORDER) {
-            const key = `${iface.type}${iface.number}`;
-            if (!window.usedInterfaces[deviceName].includes(key)) {
-                window.usedInterfaces[deviceName].push(key);
-                return { type: iface.type, number: iface.number };
-            }
-        }
-        console.error(`No hay más interfaces disponibles para el switch ${deviceName}`);
+
+    // Buscar el nodo real por nombre
+    const nodeList = window.nodes.get({
+        filter: n => n.data.name === deviceName
+    });
+
+    if (!nodeList.length) {
+        console.error("No se encontró el dispositivo:", deviceName);
         return null;
     }
 
-    if (deviceType === 'switch_core') {
-        // Para switches core, seguir el orden: GigabitEthernet 1/0/1-1/0/24, luego GigabitEthernet 1/1/1-1/1/4
-        for (let iface of window.SWITCH_CORE_INTERFACE_ORDER) {
-            const key = `${iface.type}${iface.number}`;
-            if (!window.usedInterfaces[deviceName].includes(key)) {
-                window.usedInterfaces[deviceName].push(key);
-                return { type: iface.type, number: iface.number };
-            }
-        }
-        console.error(`No hay más interfaces disponibles para el switch core ${deviceName}`);
+    const node = nodeList[0];
+
+    // Determinar el orden de interfaces según el tipo de dispositivo
+    let interfaceOrder;
+
+    if (deviceType === 'router') {
+        interfaceOrder = window.ROUTER_INTERFACE_ORDER;
+    } 
+    else if (deviceType === 'switch') {
+        interfaceOrder = window.SWITCH_INTERFACE_ORDER;
+    } 
+    else if (deviceType === 'switch_core') {
+        interfaceOrder = window.SWITCH_CORE_INTERFACE_ORDER;
+    } 
+    else {
+        console.warn("Dispositivo no soportado en auto-asignación:", deviceType);
         return null;
     }
-    
-    // Para otros dispositivos, mantener lógica existente
-    return null; // Se asignarán manualmente por ahora
+
+    // Recorrer todas las interfaces posibles en orden
+    for (let iface of interfaceOrder) {
+
+        // Crear string completo (ej: "FastEthernet0/1")
+        const fullPortString = `${iface.type}${iface.number}`;
+
+        // Usar tu función global NUEVA a prueba de errores
+        const inUse = window.isPortInUseCorrect(node.id, fullPortString);
+
+        // Si NO está en uso, devolverlo
+        if (!inUse) {
+            return {
+                type: iface.type,
+                number: iface.number
+            };
+        }
+    }
+
+    console.error(`No hay interfaces disponibles para ${deviceType} ${deviceName}`);
+    return null;
 }
+
 
 /**
  * Libera una interfaz de un dispositivo (al eliminar conexión)
