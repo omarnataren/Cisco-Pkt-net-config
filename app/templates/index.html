@@ -31,6 +31,21 @@
             </div>
             
             <div class="tool-section">
+                <h3>Modo de Dispositivo</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn mode-btn active" onclick="window.setDeviceMode('digital')" id="btn-mode-digital" style="flex: 1;">
+                        Digital
+                    </button>
+                    <button class="btn mode-btn" onclick="window.setDeviceMode('physical')" id="btn-mode-physical" style="flex: 1;">
+                        Físico
+                    </button>
+                </div>
+                <p style="font-size: 12px; color: #8b949e; margin-top: 8px;">
+                    <span id="mode-description">Modo PT Builder con interfaces genéricas</span>
+                </p>
+            </div>
+            
+            <div class="tool-section">
                 <h3>Dispositivos</h3>
                 <button class="btn" onclick="addDevice('router')" style="margin-bottom: 10px;">
                     <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
@@ -69,9 +84,12 @@
 
             
             <div class="tool-section">
-                <button class="btn" onclick="generateConfigurations()" style="background: #238636;">
-                    Generar Configuración
+                <button class="btn" onclick="generateConfigurations()" style="background: #238636;" id="generate-btn">
+                    <span id="generate-btn-text">Generar Configuración (Digital)</span>
                 </button>
+                <p style="font-size: 11px; color: #8b949e; margin-top: 8px; text-align: center;" id="generate-hint">
+                    Incluye PT Builder
+                </p>
             </div>
         </div>
 

@@ -14,6 +14,19 @@ export function showDeviceProperties(node) {
     const computersButton = (node.data.type === 'switch' || node.data.type === 'switch_core') ? 
         '<button class="btn" onclick="openManageComputersModal()" style="background: #238636; margin-top: 10px;">💻 Administrar Computadoras</button>' : '';
     
+    // Información del modelo (solo en modo físico)
+    let modelInfo = '';
+    if (window.deviceMode === 'physical' && node.data.model) {
+        const displayName = window.getDeviceDisplayName(node.data.type, node.data.model);
+        modelInfo = `
+        <div class="property-group">
+            <h4>Modelo</h4>
+            <div style="color: #ce9178; font-size: 14px; font-weight: bold;">${displayName}</div>
+            <div style="color: #8b949e; font-size: 12px; margin-top: 4px;">Código: ${node.data.model}</div>
+        </div>
+        `;
+    }
+    
     content.innerHTML = `
     <div class="property-group">
         <h4>Nombre del Dispositivo</h4>
@@ -26,6 +39,7 @@ export function showDeviceProperties(node) {
         <h4>Tipo</h4>
         <div style="color: #8b949e; font-size: 14px;">${typeNames[node.data.type] || node.data.type}</div>
     </div>
+    ${modelInfo}
     ${computersButton}
     <div class="property-group">
         <h4>Conexiones</h4>

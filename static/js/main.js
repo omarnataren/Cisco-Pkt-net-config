@@ -1,6 +1,7 @@
 // CAPA 1: CORE (Estado global y constantes - sin dependencias)
 import './core/network-constants.js';
 import './core/network-state.js';
+import './core/physical-models.js';
 
 // CAPA 2: UTILIDADES (Dependencias mínimas)
 import './ui/notification.js';
@@ -26,6 +27,7 @@ import './ui/modals.js';
 // CAPA 5: TOPOLOGÍA Y EXPORTACIÓN (Depende de todo)
 import { initNetwork } from './topology/topology-renderer.js';
 import './export/topology-serializer.js';
+import './export/physical-config-generator.js';
 
 // ✅ EXPORTAR FUNCIONES CRÍTICAS A WINDOW INMEDIATAMENTE
 window.addDevice = addDevice;

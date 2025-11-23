@@ -49,7 +49,8 @@ export function handleConnectionClick(nodeId) {
         
         // Asignar interfaz para el nodo origen (router, switch o switch_core)
         if (fromNode.data.type === 'router' || fromNode.data.type === 'switch' || fromNode.data.type === 'switch_core') {
-            fromInterface = window.getNextAvailableInterface(fromNode.data.name, fromNode.data.type);
+            const fromModel = fromNode.data.model || null;
+            fromInterface = window.getNextAvailableInterface(fromNode.data.name, fromNode.data.type, fromModel);
             if (!fromInterface) {
                 window.showNotification(`No hay interfaces disponibles en ${fromNode.data.name}`, 'error');
                 window.firstNodeConnection = null;
@@ -58,7 +59,8 @@ export function handleConnectionClick(nodeId) {
         }
         // Asignar interfaz para el nodo destino (router, switch o switch_core)
         if (toNode.data.type === 'router' || toNode.data.type === 'switch' || toNode.data.type === 'switch_core') {
-            toInterface = window.getNextAvailableInterface(toNode.data.name, toNode.data.type);
+            const toModel = toNode.data.model || null;
+            toInterface = window.getNextAvailableInterface(toNode.data.name, toNode.data.type, toModel);
             if (!toInterface) {
                 // Liberar la interfaz del origen si ya se asignó
                 if (fromInterface) {
