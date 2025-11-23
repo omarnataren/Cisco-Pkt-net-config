@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CISCO PKT</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌐</text></svg>">
+    
+    <!-- CSS -->
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/modals.css') }}" rel="stylesheet" type="text/css" />
+    
+</head>
+<body>
+    <div class="container">
+        <!-- Panel Izquierdo -->
+        <div class="left-panel">
+            <div class="panel-header">
+                <h2> Diseñador de Topología</h2>
+                
+            </div>
+
+            <div class="tool-section">
+                <h3>Red Base</h3>
+                <div class="input-group">
+                    <label>Primer Octeto de Red</label>
+                    <input type="number" id="base-network-octet" placeholder="19" min="1" max="223">
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Modo de Dispositivo</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn mode-btn active" onclick="window.setDeviceMode('digital')" id="btn-mode-digital" style="flex: 1;">
+                        Digital
+                    </button>
+                    <button class="btn mode-btn" onclick="window.setDeviceMode('physical')" id="btn-mode-physical" style="flex: 1;">
+                        Físico
+                    </button>
+                </div>
+                <p style="font-size: 12px; color: #8b949e; margin-top: 8px;">
+                    <span id="mode-description">Modo PT Builder con interfaces genéricas</span>
+                </p>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Dispositivos</h3>
+                <button class="btn" onclick="addDevice('router')" style="margin-bottom: 10px;">
+                    <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Router
+                </button>
+                <button class="btn" onclick="addDevice('switch')" style="margin-bottom: 10px;">
+                    <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Switch
+                </button>
+                <button class="btn" onclick="addDevice('switch_core')" style="margin-bottom: 10px;">
+                    <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Switch Core
+                </button>
+            </div>
+
+            <div class="tool-section">
+                <h3>VLANs</h3>
+                <div class="input-group">
+                    <label>Nombre (ej: V2, V10)</label>
+                    <input type="text" id="vlan-name" placeholder="V2">
+                </div>
+                <div class="input-group">
+                    <label>Prefijo de Red (8-30)</label>
+                    <input type="number" id="vlan-prefix" placeholder="24" min="8" max="30">
+                </div>
+                <button class="btn" onclick="addVLAN()">
+                    <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                    Agregar VLAN
+                </button>
+                
+                <div id="vlan-list" style="margin-top: 15px;">
+                    <!-- VLANs agregadas -->
+                </div>
+            </div>
+            
+
+            
+            <div class="tool-section">
+                <button class="btn" onclick="generateConfigurations()" style="background: #238636;" id="generate-btn">
+                    <span id="generate-btn-text">Generar Configuración (Digital)</span>
+                </button>
+                <p style="font-size: 11px; color: #8b949e; margin-top: 8px; text-align: center;" id="generate-hint">
+                    Incluye PT Builder
+                </p>
+            </div>
+        </div>
+
+        <!-- Canvas Central -->
+        <div class="center-panel">
+            <div id="network-canvas"></div>
+            
+            <!-- Botones de Zoom -->
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()" title="Acercar">
+                    <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle;">
+                </button>
+                </button>
+                <button class="zoom-btn" onclick="zoomOut()" title="Alejar">
+                    <img src="{{ url_for('static', filename='assets/icons/menos.png') }}"  style="width:16px; height:16px; vertical-align:middle; ">
+                </button>
+                </button>
+            </div>
+            
+            <!-- Botones Flotantes -->
+            <div class="floating-buttons">
+                <button class="floating-btn connect" onclick="toggleConnectionMode()" id="connect-btn" title="Conectar Dispositivos">
+                    <img src="{{ url_for('static', filename='assets/icons/conexion.png') }}"  style="width:24px; height:24px; vertical-align:middle; ">
+                    
+                </button>
+                <button class="floating-btn delete" onclick="deleteSelected()" title="Eliminar Selección">
+                    <img src="{{ url_for('static', filename='assets/icons/eliminar.png') }}"  style="width:24px; height:24px; vertical-align:middle; ">
+                    
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel Derecho -->
+        <div class="right-panel">
+            <div class="properties-header">
+                <h3>Propiedades</h3>
+            </div>
+            <div class="properties-content" id="properties-content">
+                <p style="color: #8b949e; text-align: center; padding: 40px 20px;">
+                    Selecciona un elemento para ver sus propiedades
+                </p>
+            </div>
+        </div>
+    </div>
+    <!-- MODALES  -->
+    
+    <!-- Modal para nueva conexión -->
+    {% include 'modals/connection_modal.html' %}
+    
+    <!-- Modal para editar conexión -->
+    {% include 'modals/edit_connection_modal.html' %}
+    
+    <!-- Modal para administrar computadoras de un switch -->
+    {% include 'modals/manage_computers_modal.html' %}
+    {% include 'modals/add_computer_modal.html' %}
+
+    <!-- Notificación -->
+    <div id="notification" class="notification"></div>
+
+    <!-- JavaScript importaciones -->
+    <script src="{{ url_for('static', filename='js/lib/vis-network.min.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

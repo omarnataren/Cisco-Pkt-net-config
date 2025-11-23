@@ -1,202 +1,300 @@
-# 🌐 Diseñador Visual de Topología de Redes# 🌐 Diseñador Visual de Topología de Redes
-
-
-
-Herramienta web interactiva para diseñar topologías de red y generar automáticamente configuraciones CLI de dispositivos Cisco.Herramienta web interactiva para diseñar topologías de red y generar configuraciones CLI de dispositivos Cisco (Routers, Switches).
-
-
-
-## 🚀 Características Principales## 🚀 Características
-
-
-
-### Diseño Visual Interactivo### Diseño Visual
-
-- 🎨 Canvas gráfico con drag & drop- 🎨 **Interfaz gráfica interactiva** basada en vis-network
-
-- 🔗 Conexiones visuales con flechas direccionales- 🖱️ **Drag & drop** para posicionar dispositivos
-
-- 📝 Edición en tiempo real- 🔗 **Conexiones visuales** entre dispositivos
-
-- 🔍 Zoom (0.3x - 3.0x)- 📝 **Edición inline** de nombres y propiedades
-
-- 🔍 **Zoom y navegación** con controles intuitivos
-
-### Dispositivos
-
-- 🔀 **Router** - Layer 3 con ruteo IP### Dispositivos Soportados
-
-- 🔄 **Switch Core** - Layer 3 con VLANs y ruteo- 🔀 **Routers** (Layer 3)
-
-- 🔌 **Switch** - Layer 2- 🔄 **Switch Core** (Layer 3 con VLANs)
-
-- 💻 **Computadora** - Endpoints- 🔌 **Switches** (Layer 2)
-
-- 💻 **Computadoras** (endpoints)
-
-### Ruteo Direccional
-
-Control granular de rutas estáticas:### Funcionalidades Avanzadas
-
-- **↔ Bidireccional** (default)- ✅ **Ruteo Direccional**: Control manual de direcciones de ruteo (bidireccional, unidireccional, sin ruteo)
-
-- **→ From-to** (unidireccional)- ⚡ **EtherChannel**: Agregación de enlaces con LACP y PAgP
-
-- **← To-from** (unidireccional)  - 🔄 **Generación automática de rutas estáticas** respetando direcciones configuradas
-
-- **—Sin ruteo** (solo conexión física)- 📊 **Cálculo automático de IPs** para backbones y VLANs
-
-- 📋 **Exportación de configuraciones** por dispositivo
-
-### EtherChannel- 💾 **Descarga de reportes** en formato TXT
-
-Agregación entre switches:
-
-- **LACP** (active/passive)## 📋 Cómo usar
-
-- **PAgP** (desirable/auto)
-
-- Rangos de interfaces### 1. Iniciar la aplicación
-
-
-
-### Generación Automática```bash
-
-- ✅ IPs para backbones (/30)python app.py
-
-- ✅ Subredes para VLANs```
-
-- ✅ Algoritmo BFS direccional
-
-- ✅ Comandos Cisco IOSLuego abre tu navegador en: `http://127.0.0.1:5000`
-
-- ✅ Exportación TXT
-
-### 2. Diseñar la Topología
-
-## 📋 Uso Rápido
-
-#### Agregar Dispositivos
-
-### 1. Iniciar1. Haz clic en los botones de la barra superior:
-
-```bash   - 🔀 Router
-
-python app.py   - 🔄 Switch Core
-
-```   - 🔌 Switch
-
-Abre: `http://127.0.0.1:5000`   - 💻 Computadora
-
-
-
-### 2. Diseñar2. Haz doble-click en un dispositivo para editarlo:
-
-- Click en **Router/Switch/PC** → Aparece en canvas   - Cambiar nombre
-
-- Arrastra para posicionar   - Asignar VLANs (solo routers/switches core)
-
-- Doble-click para editar nombre
-
-#### Conectar Dispositivos
-
-### 3. Conectar1. Haz clic en "🔗 Conectar"
-
-- Click **"🔗 Conectar"**2. Selecciona dos dispositivos para conectarlos
-
-- Click dispositivo 13. Configura las interfaces (tipo y número)
-
-- Click dispositivo 24. La conexión aparecerá en el canvas
-
-- Configura interfaces (fa/gi 0/0)
-
-#### Configurar Direcciones de Ruteo
-
-### 4. Ruteo1. **Doble-click** en una conexión para ciclar entre:
-
-**Doble-click en conexión** para cambiar dirección   - ↔ **Bidireccional**: Rutas en ambas direcciones
-
-   - → **From-to**: Solo desde origen a destino
-
-### 5. VLANs   - ← **To-from**: Solo desde destino a origen
-
-- Panel derecho: **"➕ Agregar VLAN"**   - — **Sin ruteo**: Conexión física sin rutas
-
-- Nombre, ID, Prefijo (/24)
-
-- Doble-click en dispositivo → Marcar VLANs#### Configurar EtherChannel (solo entre switches)
-
-1. Click en una conexión entre switches
-
-### 6. Generar2. Click en "Editar Conexión"
-
-- **"🚀 Generar Configuración"**3. Selecciona "EtherChannel"
-
-- **"📋 Copiar"** por dispositivo4. Configura:
-
-- **"📥 Descargar"** reporte completo   - Protocolo: LACP o PAgP
-
-   - Channel Group: 1-6
-
-## 🔧 Tecnologías   - Rangos de interfaces (ej: fa0/1-3)
-
-Python Flask, vis-network, BFS direccional
-
-### 3. Configurar VLANs
-
-## 📁 Estructura
-
-```1. Haz clic en "➕ Agregar VLAN" en el panel derecho
-
-├── app.py (520 líneas)2. Define:
-
-├── logic.py (483 líneas)   - Nombre (ej: Ventas, IT)
-
-├── templates/   - Terminación/ID (ej: 10, 20)
-
-│   ├── index_visual.html (1560+ líneas)   - Prefijo de máscara (ej: 24 para /24)
-
-│   └── router_results.html (285 líneas)
-
-└── reporte.txt3. Asigna VLANs a routers/switches core haciendo doble-click en el dispositivo
-
+# Cisco PKT - Diseñador Visual de Topologías
+
+Aplicación web para diseñar topologías de red y generar automáticamente configuraciones CLI para dispositivos Cisco (Routers, Switches, Switch Cores).
+
+## Características
+
+### Diseño Visual Interactivo
+- Interfaz gráfica basada en vis-network con drag & drop
+- Posicionamiento libre de dispositivos
+- Conexiones visuales con flechas direccionales
+- Edición inline de nombres y propiedades
+- Controles de zoom y navegación
+
+### Dispositivos Soportados
+- **Routers** (Layer 3) - Ruteo entre redes
+- **Switch Core** (Layer 3) - VLANs + ruteo inter-VLAN
+- **Switches** (Layer 2) - Conectividad local
+- **Computadoras** - Endpoints de red
+
+### Funcionalidades Avanzadas
+- **Asignación automática de interfaces** - Selección inteligente según tipo de dispositivo
+- **Ruteo direccional** - Control granular de flujo de tráfico (bidireccional, unidireccional, sin ruteo)
+- **EtherChannel** - Agregación de enlaces con LACP/PAgP
+- **Generación automática de IPs** - Subnetting para backbones (/30) y VLANs
+- **Algoritmo BFS direccional** - Cálculo de rutas estáticas respetando direcciones configuradas
+- **Configuración SSH** - Acceso remoto seguro en switches (SSHv2, usuarios locales)
+- **Exportación múltiple** - Descarga por dispositivo o archivo consolidado
+- **Script PTBuilder** - Generación de script para automatizar creación en Packet Tracer
+
+## Instalación
+
+### Requisitos
+- Python 3.8+
+- Flask 3.x
+
+### Dependencias
+```bash
+pip install flask
 ```
 
-### 4. Generar Configuraciones
+## Uso
 
-## ⚙️ Algoritmo de Ruteo
+### Iniciar la aplicación
+```bash
+python run.py
+```
 
-**BFS Direccional**:1. Haz clic en "🚀 Generar Configuración"
+Abre tu navegador en: `http://127.0.0.1:5000`
 
-1. Grafo dirigido según `routingDirection`2. Se mostrarán las configuraciones CLI de todos los dispositivos:
+### Flujo de trabajo
 
-2. Explora solo vecinos permitidos   - Comandos de interfaces
+#### 1. Agregar dispositivos
+- Click en los botones de la barra superior (Router, Switch Core, Switch, Computadora)
+- Los dispositivos aparecen en el canvas
+- Arrastra para posicionarlos
+- Doble-click para editar nombre
 
-3. Genera `ip route` para redes alcanzables   - Configuración de VLANs
+#### 2. Conectar dispositivos
+- Click en "Conectar"
+- Selecciona dos dispositivos
+- Las interfaces se asignan automáticamente según el tipo de dispositivo
+- Configura manualmente si es necesario (tipo de interfaz y número)
 
-4. Next-hop = primer salto   - Rutas estáticas (respetando direcciones)
+#### 3. Configurar direcciones de ruteo
+Doble-click en una conexión para cambiar dirección:
+- **Bidireccional** (↔) - Rutas estáticas en ambas direcciones
+- **From-to** (→) - Solo desde origen a destino
+- **To-from** (←) - Solo desde destino a origen
+- **Sin ruteo** (—) - Conexión física sin rutas
 
-   - EtherChannels configurados
+#### 4. Configurar VLANs
+- Panel derecho: "Agregar VLAN"
+- Define nombre, ID y prefijo de red (ej: /24)
+- Doble-click en router/switch core para asignar VLANs
 
-**Ejemplo**: R1 → R2 → R33. Copia configuraciones individuales o todas juntas
+#### 5. Configurar EtherChannel (opcional)
+- Click en conexión entre switches
+- Selecciona "EtherChannel" en tipo de conexión
+- Configura protocolo (LACP/PAgP), channel group y rangos de interfaces
 
-- R1: ✅ Rutas a R2 y R34. Descarga el reporte completo en TXT
+#### 6. Generar configuraciones
+- Click en "Generar Configuración"
+- Revisa las configuraciones CLI de cada dispositivo
+- Descarga individual o archivo completo
+- Descarga script PTBuilder para Packet Tracer
 
-- R2: ✅ Rutas a R3, ❌ R1  
+## 📁 Estructura del Proyecto
 
-- R3: ❌ Sin rutas## � Estructura del Proyecto
+El proyecto sigue **Screaming Architecture**, donde la estructura refleja claramente el propósito del sistema.
 
+```
+Cisco-Pkt-net-config/
+│
+├── app/                                    # 🐍 BACKEND (Python/Flask)
+│   ├── __init__.py                         # Factory de aplicación Flask
+│   ├── routes.py                           # Rutas HTTP (/, /download)
+│   │
+│   ├── core/                               # 🎯 Modelos de datos fundamentales
+│   │   ├── __init__.py
+│   │   └── models.py                       # Combo (dataclass para redes IP)
+│   │
+│   ├── logic/                              # 💼 Lógica de negocio del sistema
+│   │   ├── orchestrator.py                 # Orquestador principal (handle_visual_topology)
+│   │   │
+│   │   ├── cisco_config/                   # 🔧 Generadores de configuración Cisco IOS
+│   │   │   ├── __init__.py
+│   │   │   ├── ssh_config.py              # Configuración SSH (SSHv2, usuarios)
+│   │   │   ├── etherchannel.py            # EtherChannel (LACP/PAgP)
+│   │   │   ├── router_config.py           # Configuración de routers
+│   │   │   └── switch_core_config.py      # Configuración de switch cores (Layer 3)
+│   │   │
+│   │   ├── network_calculations/          # 📊 Cálculos de subnetting y addressing
+│   │   │   ├── __init__.py
+│   │   │   └── subnetting.py              # generate_blocks() - VLSM, asignación de IPs
+│   │   │
+│   │   ├── routing_algorithms/            # 🛤️ Algoritmos de ruteo
+│   │   │   ├── __init__.py
+│   │   │   ├── bfs_routing.py             # BFS direccional para tablas de ruteo
+│   │   │   └── static_routes.py           # Generador de comandos "ip route"
+│   │   │
+│   │   ├── exports/                       # 📤 Exportadores de configuraciones
+│   │   │   ├── __init__.py
+│   │   │   ├── text_files.py              # Archivos TXT por tipo de dispositivo
+│   │   │   └── report.py                  # Reportes de configuración (format_block)
+│   │   │
+│   │   ├── ptbuilder/                     # 🎨 Generador de scripts PT Builder
+│   │   │   ├── __init__.py
+│   │   │   ├── ptbuilder.py               # Script principal para Packet Tracer
+│   │   │   └── interface_utils.py         # Utilidades (expand_interface_type, transform_coordinates)
+│   │   │
+│   │   └── device/                        # 📡 Constantes y utilidades de dispositivos
+│   │       ├── __init__.py
+│   │       └── device-constants.py        # Constantes de interfaces por tipo
+│   │
+│   └── templates/                         # 🎨 Plantillas HTML
+│       ├── index.html                     # Diseñador visual principal
+│       ├── router_results.html            # Página de resultados con configuraciones
+│       └── modals/                        # Modales de configuración
+│           ├── connection_modal.html
+│           ├── device_properties_modal.html
+│           ├── edit_connection_modal.html
+│           ├── manage_computers_modal.html
+│           └── vlan_modal.html
+│
+├── static/                                # 🎨 FRONTEND (JavaScript/CSS)
+│   ├── css/
+│   │   ├── styles.css                     # Estilos principales
+│   │   └── modals.css                     # Estilos de modales
+│   │
+│   ├── js/
+│   │   ├── lib/
+│   │   │   └── vis-network.min.js         # Librería de visualización de grafos
+│   │   │
+│   │   ├── core/                          # 🎯 Estado global y constantes
+│   │   │   ├── network-state.js           # nodes, edges, vlans, counters (DataSet vis-network)
+│   │   │   └── network-constants.js       # Constantes de interfaces, colores, tipos
+│   │   │
+│   │   ├── devices/                       # 🖥️ Gestión de dispositivos
+│   │   │   ├── device-factory.js          # Crear/eliminar dispositivos en canvas
+│   │   │   └── device-interfaces.js       # Asignar/liberar interfaces automáticamente
+│   │   │
+│   │   ├── connections/                   # 🔗 Gestión de conexiones
+│   │   │   ├── connection-mode.js         # Modo de conexión (activar/desactivar)
+│   │   │   ├── connection-creator.js      # Crear conexiones entre dispositivos
+│   │   │   ├── connection-editor.js       # Editar conexiones existentes
+│   │   │   ├── routing-direction.js       # Direccionalidad de ruteo (bi/uni/sin ruteo)
+│   │   │   └── etherchannel-helpers.js    # Helpers para EtherChannel
+│   │   │
+│   │   ├── vlans/                         # 🏷️ Gestión de VLANs
+│   │   │   └── vlan-managment.js          # CRUD de VLANs (agregar, eliminar, actualizar)
+│   │   │
+│   │   ├── topology/                      # 🌐 Renderizado del canvas
+│   │   │   └── topology-renderer.js       # Inicialización de vis-network
+│   │   │
+│   │   ├── ui/                            # 🎨 Componentes de interfaz
+│   │   │   ├── notifications.js           # Sistema de notificaciones
+│   │   │   ├── modals.js                  # Gestión de modales (abrir/cerrar)
+│   │   │   ├── property-panel.js          # Panel de propiedades de dispositivos
+│   │   │   └── zoom-controls.js           # Controles de zoom (in/out/reset)
+│   │   │
+│   │   ├── export/                        # 📤 Exportación de topología
+│   │   │   └── topology-serializer.js     # Serializar topología a JSON para backend
+│   │   │
+│   │   └── main.js                        # 🚀 Punto de entrada principal
+│   │
+│   └── assets/                            # Recursos estáticos (iconos, imágenes)
+│
+├── docs/                                  # 📚 Documentación del proyecto
+│   ├── SCREAMING_ARCHITECTURE.md          # Propuesta de arquitectura Screaming
+│   ├── FUNCIONES_RESTANTES_UBICACION.md   # Análisis de funciones restantes
+│   ├── MAPA_VISUAL_REORGANIZACION.md      # Mapa visual de reorganización
+│   ├── SISTEMA_IMPORTACIONES.md           # Sistema de importaciones completo
+│   └── CHECKLIST_IMPORTACIONES.md         # Checklist de implementación
+│
+├── run.py                                 # 🚀 Punto de entrada de la aplicación
+├── requirements.txt                       # 📦 Dependencias Python
+└── README.md                              # 📖 Esta documentación
+```
 
+### 📋 Descripción de Carpetas Principales
 
-## 💡 Tips```
+#### **Backend (app/)**
+- **`core/`**: Modelos de datos fundamentales (Combo para redes IP)
+- **`logic/cisco_config/`**: Generación de comandos CLI para Cisco IOS
+- **`logic/network_calculations/`**: Algoritmos de subnetting VLSM
+- **`logic/routing_algorithms/`**: BFS para tablas de ruteo estático
+- **`logic/exports/`**: Exportación a archivos TXT y PT Builder
+- **`logic/ptbuilder/`**: Scripts para automatización en Packet Tracer
+- **`logic/device/`**: Constantes de dispositivos de red
 
-- Nombres descriptivos (R1-Core)Combos y rutas/
+#### **Frontend (static/js/)**
+- **`core/`**: Estado global (vis-network DataSet) y constantes
+- **`devices/`**: Creación y gestión de dispositivos en canvas
+- **`connections/`**: Creación, edición y configuración de conexiones
+- **`vlans/`**: Sistema CRUD de VLANs
+- **`topology/`**: Inicialización y renderizado del canvas
+- **`ui/`**: Componentes de interfaz (notificaciones, modales, zoom)
+- **`export/`**: Serialización de topología para enviar a backend
 
-- VLANs: 10, 20, 30...├── app.py                              # Servidor Flask (521 líneas)
+### 🔄 Flujo de Datos
 
-- /24 para oficinas├── logic.py                            # Lógica de ruteo y configs (500 líneas)
+```
+Usuario diseña topología (static/js/)
+    ↓
+topology-serializer.js → JSON
+    ↓
+POST a Flask (app/routes.py)
+    ↓
+orchestrator.py coordina:
+    ├─ subnetting.py → Calcula redes IP
+    ├─ router_config.py → Genera CLI
+    ├─ bfs_routing.py → Calcula rutas
+    └─ ptbuilder.py → Genera script PT
+    ↓
+render_template('router_results.html')
+```
 
-- EtherChannel: mismo # interfaces├── templates/
+## Algoritmo de Ruteo
+
+### BFS Direccional
+El algoritmo utiliza Breadth-First Search respetando las direcciones configuradas:
+
+1. Construye grafo dirigido basado en `routingDirection` de cada conexión
+2. Para cada router, ejecuta BFS explorando solo vecinos permitidos
+3. Genera comandos `ip route` para todas las redes alcanzables
+4. Next-hop siempre es el primer salto (vecino directo)
+
+**Ejemplo**: R1 → R2 → R3 (unidireccional)
+- **R1**: Genera rutas a R2 y R3
+- **R2**: Genera rutas a R3 (no a R1)
+- **R3**: No genera rutas (no tiene salidas)
+
+## Configuraciones Generadas
+
+### Routers
+- Hostname
+- Interfaces (FastEthernet, Ethernet)
+- IPs de backbone (/30 entre routers)
+- VLANs (sub-interfaces)
+- Rutas estáticas (según BFS direccional)
+
+### Switches
+- Hostname
+- VLANs (database)
+- Access ports (asignación a VLANs)
+- Trunk ports (hacia routers/otros switches)
+- EtherChannel (LACP/PAgP)
+- SSH (versión 2, usuarios locales)
+
+### Switch Cores
+- Todo lo de switches +
+- Interfaces SVI (gateway de VLANs)
+- Ruteo IP habilitado
+- Rutas estáticas
+
+## Tips de Uso
+
+- Usa nombres descriptivos para dispositivos (R1-Core, SW-Piso1)
+- Convención de VLANs: 10, 20, 30 para facilitar organización
+- Prefijo /24 es estándar para redes de oficina
+- EtherChannel: usa el mismo número de interfaces en ambos extremos
+- Direcciones de ruteo: Configura antes de generar para evitar regeneraciones
+
+## Tecnologías
+
+- **Backend**: Python 3.8+, Flask 3.x
+- **Frontend**: HTML5, CSS3, JavaScript (ES6)
+- **Visualización**: vis-network.js
+- **Algoritmos**: BFS direccional, subnetting automático
+
+## Licencia
+
+MIT License
+
+## Autor
+
+Omar Nataren
 
 - Documenta flujo antes de configurar│   ├── index_visual.html              # Interfaz visual principal
 
