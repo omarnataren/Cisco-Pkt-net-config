@@ -151,6 +151,9 @@ def handle_visual_topology(topology):
         switches = []
         switch_cores = []
         computers = []
+        servers = []
+        wlcs = []
+        aps = []
         
         for n in nodes:
             node_type = n['data']['type']
@@ -160,6 +163,12 @@ def handle_visual_topology(topology):
                 switches.append(n)
             elif node_type == 'switch_core':
                 switch_cores.append(n)
+            elif node_type == 'server':
+                servers.append(n)
+            elif node_type == 'wlc':
+                wlcs.append(n)
+            elif node_type == 'ap':
+                aps.append(n)
         
         # Extraer computadoras del NUEVO SISTEMA (almacenadas en switches y switch_cores)
         # Contador global para nombres únicos de PCs
@@ -541,6 +550,10 @@ def handle_visual_topology(topology):
                 
                 other_type = other_node['data']['type']
                 
+                # Servidores conectados directamente
+                if other_type == 'server' and other_node['data'].get('vlan'):
+                    vlans_used.add(other_node['data']['vlan'])
+                
                 # Computadoras conectadas directamente (antiguo sistema)
                 if other_type == 'computer' and other_node['data'].get('vlan'):
                     vlans_used.add(other_node['data']['vlan'])
@@ -648,6 +661,28 @@ def handle_visual_topology(topology):
             # Configurar puertos de acceso para computadoras conectadas al switch core
             computer_ports_swc = []
             
+            # Procesar servidores conectados al switch core
+            for edge in swc_edges:
+                other_id = edge['to'] if edge['from'] == swc_id else edge['from']
+                other_node = node_map.get(other_id)
+                
+                if other_node and other_node['data']['type'] == 'server':
+                    vlan_name = other_node['data'].get('vlan')
+                    if vlan_name:
+                        vlan_num = ''.join(filter(str.isdigit, vlan_name))
+                        if vlan_num:
+                            # Obtener interfaz del switch core hacia el servidor
+                            is_from = edge['from'] == swc_id
+                            iface_data = edge['data']['fromInterface'] if is_from else edge['data']['toInterface']
+                            port_full = f"{iface_data['type']}{iface_data['number']}"
+                            
+                            computer_ports_swc.append({
+                                'interface': port_full,
+                                'vlan': vlan_num,
+                                'computer': other_node['data']['name'],
+                                'is_server': True
+                            })
+            
             # Procesar computadoras del sistema nuevo (almacenadas en el switch core)
             if 'computers' in swc['data']:
                 for pc in swc['data']['computers']:
@@ -660,7 +695,8 @@ def handle_visual_topology(topology):
                             computer_ports_swc.append({
                                 'interface': port_full,
                                 'vlan': vlan_num,
-                                'computer': pc['name']
+                                'computer': pc['name'],
+                                'is_server': False
                             })
             
             # Agregar configuración de puertos de acceso para PCs

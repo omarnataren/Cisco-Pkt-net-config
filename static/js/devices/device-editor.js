@@ -38,5 +38,40 @@ export function updateDeviceName() {
     }
 }
 
+// Actualizar VLAN de servidor
+export function updateServerVlan() {
+    if (!window.selectedNode) return;
+    
+    const node = window.nodes.get(window.selectedNode);
+    if (node.data.type !== 'server') {
+        showNotification('Esta función es solo para servidores', 'error');
+        return;
+    }
+    
+    const vlanSelect = document.getElementById('server-vlan-select');
+    const selectedVlan = vlanSelect.value;
+    
+    // Actualizar nodo con VLAN
+    window.nodes.update({
+        id: window.selectedNode,
+        data: {
+            ...node.data,
+            vlan: selectedVlan
+        }
+    });
+    
+    if (selectedVlan) {
+        showNotification(`VLAN ${selectedVlan} asignada al servidor ${node.data.name}`);
+    } else {
+        showNotification('VLAN removida del servidor');
+    }
+    
+    // Refrescar propiedades
+    if (typeof window.showDeviceProperties === 'function') {
+        window.showDeviceProperties(window.nodes.get(window.selectedNode));
+    }
+}
+
 // ✅ Exponer funciones globalmente para compatibilidad con HTML onclick
 window.updateDeviceName = updateDeviceName;
+window.updateServerVlan = updateServerVlan;

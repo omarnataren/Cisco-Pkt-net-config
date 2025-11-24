@@ -202,12 +202,8 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         pc_name = computer['data']['name']
         lines.append(f'configurePcIp("{pc_name}", true);')
     
-    # Retornar contenido en lugar de escribir a disco
+    # Retornar contenido para descarga
     ptbuilder_content = "\n".join(lines)
-    
-    # También guardar en archivo para compatibilidad con herramientas existentes
-    with open("topology_ptbuilder.txt", "w", encoding="utf-8") as f:
-        f.write(ptbuilder_content)
     
     return ptbuilder_content
 

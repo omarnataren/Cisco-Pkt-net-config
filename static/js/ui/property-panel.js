@@ -5,7 +5,10 @@ export function showDeviceProperties(node) {
     const typeNames = {
         'router': 'Router',
         'switch': 'Switch',
-        'switch_core': 'Switch Core'
+        'switch_core': 'Switch Core',
+        'wlc': 'WLC',
+        'server': 'Server',
+        'ap': 'Access Point'
     };
     
     const content = document.getElementById('properties-content');
@@ -13,6 +16,30 @@ export function showDeviceProperties(node) {
     // Botón de administrar computadoras solo para switches
     const computersButton = (node.data.type === 'switch' || node.data.type === 'switch_core') ? 
         '<button class="btn" onclick="openManageComputersModal()" style="background: #238636; margin-top: 10px;">💻 Administrar Computadoras</button>' : '';
+    
+    // Selector de VLAN para servidores
+    let vlanSelector = '';
+    if (node.data.type === 'server') {
+        const vlans = window.vlans || [];
+        const currentVlan = node.data.vlan || '';
+        
+        vlanSelector = `
+        <div class="property-group">
+            <h4>VLAN del Servidor</h4>
+            <div class="input-group" style="position: relative;">
+                <select id="server-vlan-select" style="width: 100%; padding: 8px 30px 8px 8px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none; -moz-appearance: none;">
+                    <option value="">Sin VLAN</option>
+                    ${vlans.map(vlan => `<option value="${vlan.name}" ${vlan.name === currentVlan ? 'selected' : ''}>${vlan.name}</option>`).join('')}
+                </select>
+                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #8b949e;">▼</span>
+            </div>
+            <button class="btn" onclick="updateServerVlan()" style="margin-top: 10px;">Asignar VLAN</button>
+            <p style="font-size: 11px; color: #8b949e; margin-top: 8px;">
+                Se configurará DHCP y puerto de acceso en el Switch Core conectado
+            </p>
+        </div>
+        `;
+    }
     
     // Información del modelo (solo en modo físico)
     let modelInfo = '';
@@ -40,6 +67,7 @@ export function showDeviceProperties(node) {
         <div style="color: #8b949e; font-size: 14px;">${typeNames[node.data.type] || node.data.type}</div>
     </div>
     ${modelInfo}
+    ${vlanSelector}
     ${computersButton}
     <div class="property-group">
         <h4>Conexiones</h4>
