@@ -56,6 +56,24 @@ case 'computer':
     shape = 'circle';
     deviceType = 'computer';
     break;
+case 'wlc':
+    name = 'WLC' + window.wlcCounter++;
+    color = { background: '#87CEEB', border: '#4682B4' };
+    shape = 'box';
+    deviceType = 'wlc';
+    break;
+case 'server':
+    name = 'S' + window.serverCounter++;
+    color = { background: '#87CEEB', border: '#4682B4' };
+    shape = 'box';
+    deviceType = 'server';
+    break;
+case 'ap':
+    name = 'AP' + window.apCounter++;
+    color = { background: '#87CEEB', border: '#4682B4' };
+    shape = 'box';
+    deviceType = 'ap';
+    break;
     }
     
     const id = deviceType + '_' + Date.now();

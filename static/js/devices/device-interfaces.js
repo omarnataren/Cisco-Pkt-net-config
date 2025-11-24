@@ -40,6 +40,15 @@ export function getNextAvailableInterface(deviceName, deviceType, model = null) 
         else if (deviceType === 'computer') {
             interfaceOrder = window.COMPUTER_INTERFACE_ORDER;
         }
+        else if (deviceType === 'server') {
+            interfaceOrder = window.SERVER_INTERFACE_ORDER;
+        }
+        else if (deviceType === 'wlc') {
+            interfaceOrder = window.WLC_INTERFACE_ORDER;
+        }
+        else if (deviceType === 'ap') {
+            interfaceOrder = window.AP_INTERFACE_ORDER;
+        }
         else {
             console.warn("Dispositivo no soportado en auto-asignación:", deviceType);
             return null;

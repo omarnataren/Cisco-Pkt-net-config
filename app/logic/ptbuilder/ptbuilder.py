@@ -28,7 +28,10 @@ def get_cable_type(from_device_type, to_device_type):
         'router': 'router',
         'switch': 'switch',
         'switch_core': 'switch',  # Switch core se comporta como switch en capa 2
-        'computer': 'computer'
+        'computer': 'computer',
+        'wlc': 'switch',  # WLC se comporta como switch en capa 2
+        'server': 'computer',  # Server se comporta como computer
+        'ap': 'switch'  # AP se comporta como switch en capa 2
     }
     
     from_category = device_category.get(from_device_type, from_device_type)
@@ -58,7 +61,10 @@ def generate_ptbuilder_script(topology, router_configs, computers):
         'router': '2811',
         'switch': '2960-24TT',
         'switch_core': '3650-24PS',
-        'computer': 'PC-PT'
+        'computer': 'PC-PT',
+        'wlc': 'WLC-3504',
+        'server': 'Server-PT',
+        'ap': '3702i'
     }
     
     nodes = topology['nodes']

@@ -238,9 +238,6 @@ window.setDeviceMode = function(mode) {
         if (generateBtnText) {
             generateBtnText.textContent = 'Generar Configuración (Físico)';
         }
-        if (generateHint) {
-            generateHint.textContent = 'Sin PT Builder - Solo configs IOS';
-        }
         window.showNotification('Modo Físico activado - Topología limpiada', 'success');
     }
     
