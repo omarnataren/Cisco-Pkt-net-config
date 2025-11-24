@@ -34,6 +34,23 @@ export function clearSelection() {
     `;
 }
 
+// Toggle para mostrar/ocultar más dispositivos
+export function toggleMoreDevices() {
+    const panel = document.getElementById('more-devices-panel');
+    const arrow = document.getElementById('toggle-devices-arrow');
+    const text = document.getElementById('toggle-devices-text');
+    
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        arrow.textContent = '▲';
+        text.textContent = 'Ver menos dispositivos';
+    } else {
+        panel.style.display = 'none';
+        arrow.textContent = '▼';
+        text.textContent = 'Ver más dispositivos';
+    }
+}
+
 // Eliminar selección
 export function deleteSelected() {
     if (window.selectedNode) {
@@ -85,3 +102,4 @@ window.selectNode = selectNode;
 window.selectEdge = selectEdge;
 window.clearSelection = clearSelection;
 window.deleteSelected = deleteSelected;
+window.toggleMoreDevices = toggleMoreDevices;

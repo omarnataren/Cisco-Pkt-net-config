@@ -41,6 +41,31 @@ window.SWITCH_CORE_INTERFACE_ORDER = [
     })),
 ];
 
+//Computer
+window.COMPUTER_INTERFACE_ORDER = [
+    { type: 'FastEthernet', number: '0' },
+    { type: 'GigabitEthernet', number: '0' }
+];
+
+//Server
+window.SERVER_INTERFACE_ORDER = [
+    { type: 'FastEthernet', number: '0' }
+];
+
+//WLC (Wireless LAN Controller)
+window.WLC_INTERFACE_ORDER = [
+    { type: 'GigabitEthernet', number: '1' },
+    { type: 'GigabitEthernet', number: '2' },
+    { type: 'GigabitEthernet', number: '3' },
+    { type: 'GigabitEthernet', number: '4' },
+    { type: 'GigabitEthernet', number: '5' }
+];
+
+//AP (Access Point)
+window.AP_INTERFACE_ORDER = [
+    { type: 'GigabitEthernet', number: '0' }
+];
+
 
 /**
  * Datos de interfaces disponibles por tipo

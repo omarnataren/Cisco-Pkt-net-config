@@ -3,174 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Configuración CLI Generada</title>
-  <style>
-    body { 
-      font-family: 'Courier New', monospace; 
-      margin: 40px; 
-      background: #1e1e1e; 
-      color: #d4d4d4;
-    }
-    .container { 
-      max-width: 1200px; 
-      margin: auto; 
-    }
-    .header {
-      background: #2d2d2d;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    h1 { 
-      color: #4ec9b0; 
-      margin: 0;
-    }
-    .router-config { 
-      background: #2d2d2d; 
-      padding: 25px; 
-      margin-bottom: 30px; 
-      border-radius: 8px; 
-      border-left: 5px solid #4ec9b0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    .router-config h2 { 
-      color: #4ec9b0; 
-      margin-top: 0;
-      font-size: 24px;
-      border-bottom: 2px solid #4ec9b0;
-      padding-bottom: 10px;
-    }
-    .command-block { 
-      background: #1e1e1e; 
-      padding: 20px; 
-      border-radius: 5px; 
-      margin-top: 15px;
-      overflow-x: auto;
-      border: 1px solid #3e3e3e;
-    }
-    .command { 
-      color: #dcdcaa; 
-      margin: 5px 0;
-      line-height: 1.6;
-    }
-    .comment { 
-      color: #6a9955; 
-      font-style: italic;
-    }
-    .keyword { 
-      color: #c586c0; 
-    }
-    .string { 
-      color: #ce9178; 
-    }
-    button { 
-      background: #0e639c; 
-      color: white; 
-      border: none; 
-      padding: 12px 24px; 
-      border-radius: 5px; 
-      cursor: pointer; 
-      font-size: 14px;
-      font-family: Arial, sans-serif;
-      margin-right: 10px;
-      margin-top: 10px;
-    }
-    button:hover { 
-      background: #1177bb; 
-    }
-    .actions {
-      text-align: center;
-      margin-top: 30px;
-      background: #2d2d2d;
-      padding: 20px;
-      border-radius: 8px;
-    }
-    a {
-      color: #4ec9b0;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .copy-btn {
-      background: #4ec9b0;
-      float: right;
-      padding: 8px 16px;
-      font-size: 12px;
-    }
-    .copy-btn:hover {
-      background: #6dd9bf;
-    }
-    .success-message {
-      background: #0e639c;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 5px;
-      display: none;
-      float: right;
-      margin-left: 10px;
-      font-size: 12px;
-    }
-    .routes-section {
-      background: #252526;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      border: 1px solid #4ec9b0;
-    }
-    .routes-section h3 {
-      color: #4ec9b0;
-      margin-top: 0;
-      font-size: 16px;
-    }
-    .vlan-info-section {
-      background: #2d2d2d;
-      padding: 25px;
-      margin-bottom: 30px;
-      border-radius: 8px;
-      border-left: 5px solid #dcdcaa;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    .vlan-info-section h2 {
-      color: #dcdcaa;
-      margin-top: 0;
-      font-size: 24px;
-      border-bottom: 2px solid #dcdcaa;
-      padding-bottom: 10px;
-    }
-    .vlan-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      font-size: 13px;
-    }
-    .vlan-table th {
-      background: #1e1e1e;
-      color: #dcdcaa;
-      padding: 12px;
-      text-align: left;
-      border-bottom: 2px solid #dcdcaa;
-    }
-    .vlan-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #3e3e3e;
-    }
-    .vlan-table tr:hover {
-      background: #3e3e3e;
-    }
-    .device-badge {
-      background: #4ec9b0;
-      color: #1e1e1e;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: bold;
-      display: inline-block;
-    }
-    .switch-badge {
-      background: #dcdcaa;
-    }
-  </style>
+  <link href="{{ url_for('static', filename='css/success.css') }}" rel="stylesheet" type="text/css" />
   <script>
     function copyConfig(routerIndex) {
       const configBlock = document.getElementById(`config-${routerIndex}`);
@@ -201,15 +34,15 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Configuración CLI de Routers</h1>
+      <h1>Configuración CLI</h1>
       <p style="margin: 10px 0 0 0; color: #888;">Comandos generados para Cisco</p>
       {% if is_physical_mode %}
       <p style="margin: 10px 0 0 0; color: #ce9178; font-weight: bold;">
-        🔧 Modo Físico - Modelos reales (sin PT Builder)
+        Modo Físico - Modelos reales (sin PT Builder)
       </p>
       {% else %}
       <p style="margin: 10px 0 0 0; color: #4ec9b0; font-weight: bold;">
-        💻 Modo Digital - Con PT Builder
+        Modo Digital - Con PT Builder
       </p>
       {% endif %}
     </div>
@@ -244,7 +77,7 @@
 
     <!-- Información de VLANs y Segmentos -->
     <div class="vlan-info-section">
-      <h2>📊 Información de VLANs y Segmentos de Red</h2>
+      <h2>Información de VLANs y Segmentos de Red</h2>
       <table class="vlan-table">
         <thead>
           <tr>

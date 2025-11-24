@@ -59,6 +59,28 @@
                     <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
                     Switch Core
                 </button>
+                
+                <!-- Panel expandible con más dispositivos -->
+                <div id="more-devices-panel" style="display: none; margin-top: 10px;">
+                    <button class="btn" onclick="addDevice('wlc')" style="margin-bottom: 10px;">
+                        <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                        WLC
+                    </button>
+                    <button class="btn" onclick="addDevice('server')" style="margin-bottom: 10px;">
+                        <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                        Server
+                    </button>
+                    <button class="btn" onclick="addDevice('ap')" style="margin-bottom: 10px;">
+                        <img src="{{ url_for('static', filename='assets/icons/mas.png') }}"  style="width:16px; height:16px; vertical-align:middle; margin-right:6px;">
+                        AP
+                    </button>
+                </div>
+
+                <!-- Botón para expandir más dispositivos -->
+                <button class="btn" onclick="toggleMoreDevices()" style="margin-bottom: 10px; background: #21262d; border: 1px solid #30363d;">
+                    <span id="toggle-devices-text">Ver más dispositivos</span>
+                    <span id="toggle-devices-arrow" style="margin-left: 6px;">▼</span>
+                </button>
             </div>
 
             <div class="tool-section">
@@ -87,9 +109,6 @@
                 <button class="btn" onclick="generateConfigurations()" style="background: #238636;" id="generate-btn">
                     <span id="generate-btn-text">Generar Configuración (Digital)</span>
                 </button>
-                <p style="font-size: 11px; color: #8b949e; margin-top: 8px; text-align: center;" id="generate-hint">
-                    Incluye PT Builder
-                </p>
             </div>
         </div>
 
