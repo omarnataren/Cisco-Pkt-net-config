@@ -45,56 +45,123 @@ export function updateComputersList() {
     });
 }
 
+
+// Actualizar select de VLANs para computadoras
+export function updateComputerVlanSelect() {
+    const select = document.getElementById('new-pc-vlan');
+    select.innerHTML = '<option value="">-- Selecciona VLAN --</option>';
+
+    window.vlans.forEach(vlan => {
+        const option = document.createElement('option');
+        option.value = vlan.name;
+        option.textContent = `${vlan.name} (/${vlan.prefix})`;
+        select.appendChild(option);
+    });
+}
+
+// Asignar automáticamente el puerto al seleccionar una VLAN
+window.autoAssignPort = function() {
+    const vlanName = document.getElementById('new-pc-vlan').value;
+    const portInput = document.getElementById('new-pc-port');
+
+    if (!vlanName) {
+        portInput.value = "";
+        return;
+    }
+
+    const computers = currentSwitchForComputers.data.computers || [];
+
+    // Filtrar las computadoras de la misma VLAN
+    const vlanComputers = computers.filter(pc => pc.vlan === vlanName);
+
+    // Asignar el siguiente puerto disponible
+    const nextPortNumber = vlanComputers.length + 1;
+    portInput.value = `FastEthernet0/${nextPortNumber}`;
+};
+
+export function updatePortPreview() {
+
+    const vlan = document.getElementById('new-pc-vlan').value;
+    const preview = document.getElementById('new-pc-port-preview');
+
+    if (!vlan) {
+        preview.value = "";
+        return;
+    }
+
+    let index = 1;
+    let candidate;
+
+    // Intentar desde FastEthernet0/1, 0/2, 0/3, ...
+    while (true) {
+        candidate = `FastEthernet0/${index}`;
+
+        const used = window.isPortInUseCorrect(currentSwitchForComputers.id, candidate);
+
+        if (!used) {
+            preview.value = candidate;
+            break;
+        }
+
+        index++;
+    }
+}
+
+
 // Guardar nueva computadora desde modal
 export function saveNewComputer() {
     const name = document.getElementById('new-pc-name').value.trim();
-    const portType = document.getElementById('new-pc-port-type').value;
-    const portNumber = document.getElementById('new-pc-port-number').value.trim();
     const vlan = document.getElementById('new-pc-vlan').value;
-    
-    console.log('Datos de nueva PC:', { name, portType, portNumber, vlan });
-    
+
     if (!name) {
         showNotification('Ingresa el nombre de la PC', 'error');
         return;
     }
-    
-    if (!portNumber) {
-        showNotification('Selecciona el puerto del switch', 'error');
-        return;
-    }
-    
+
     if (!vlan) {
         showNotification('Selecciona una VLAN', 'error');
         return;
     }
-    
-    // Verificar que el puerto no esté en uso
-    const computers = currentSwitchForComputers.data.computers || [];
-    const portInUse = computers.some(pc => pc.portType === portType && pc.portNumber === portNumber);
-    if (portInUse) {
-        showNotification('Ese puerto ya está en uso', 'error');
-        return;
-    }
-    
-    // Agregar computadora
+
+    // 1. Asegurarse de que exista el arreglo de computadoras
     if (!currentSwitchForComputers.data.computers) {
         currentSwitchForComputers.data.computers = [];
     }
-    
+
+    // Antes de guardar
+const previewPort = document.getElementById('new-pc-port-preview').value;
+
+
+    // 2. Buscar el primer puerto FastEthernet disponible (REAL)
+    let index = 1;
+    let port;
+
+    while (true) {
+        const candidate = `FastEthernet0/${index}`;
+
+        // Validar puerto contra TODA la topología
+        const used = window.isPortInUseCorrect(currentSwitchForComputers.id, candidate);
+
+        if (!used) {
+            port = candidate;
+            break;
+        }
+
+        index++;
+    }
+
+    // 3. Agregar la computadora
     currentSwitchForComputers.data.computers.push({
         name: name,
-        portType: portType,
-        portNumber: portNumber,
+        portType: "FastEthernet",
+        portNumber: previewPort,
         vlan: vlan
     });
-    
-    console.log('Computadora agregada:', currentSwitchForComputers.data.computers);
-    
+
     window.nodes.update(currentSwitchForComputers);
     updateComputersList();
     closeAddComputerModal();
-    showNotification(`Computadora ${name} agregada`);
+    showNotification(`Computadora ${name} agregada con el puerto ${port}`);
 }
 
 // Eliminar computadora
@@ -107,31 +174,33 @@ export function removeComputer(index) {
     }
 }
 
-//Actualiza la lista de puertos disponibles para agregar PCs
-export function updateNewPcPortList() {
-    const typeSelect = document.getElementById('new-pc-port-type');
-    const portSelect = document.getElementById('new-pc-port-number');
-    const selectedType = typeSelect.value;
+// //Actualiza la lista de puertos disponibles para agregar PCs
+// export function updateNewPcPortList() {
+//     const typeSelect = document.getElementById('new-pc-port-type');
+//     const portSelect = document.getElementById('new-pc-port-number');
+//     const selectedType = typeSelect.value;
     
-    // Limpiar opciones previas
-    portSelect.innerHTML = '<option value="">Seleccionar interfaz...</option>';
+//     // Limpiar opciones previas
+//     portSelect.innerHTML = '<option value="">Seleccionar interfaz...</option>';
     
-    // Agregar interfaces del tipo seleccionado
-    const interfaces = window.interfaceData[selectedType] || [];
-    const typeName = window.interfaceTypeNames[selectedType] || '';
+//     // Agregar interfaces del tipo seleccionado
+//     const interfaces = window.interfaceData[selectedType] || [];
+//     const typeName = window.interfaceTypeNames[selectedType] || '';
     
-    interfaces.forEach(ifaceNumber => {
-        const option = document.createElement('option');
-        option.value = ifaceNumber;  // ✅ Solo el número (ej: "0/1" o "1/0/1")
-        option.textContent = typeName + ifaceNumber;  // Para mostrar (ej: "FastEthernet0/1" o "GigabitEthernet1/0/1")
-        portSelect.appendChild(option);
-    });
-}
+//     interfaces.forEach(ifaceNumber => {
+//         const option = document.createElement('option');
+//         option.value = ifaceNumber;  // ✅ Solo el número (ej: "0/1" o "1/0/1")
+//         option.textContent = typeName + ifaceNumber;  // Para mostrar (ej: "FastEthernet0/1" o "GigabitEthernet1/0/1")
+//         portSelect.appendChild(option);
+//     });
+// }
 
 // ✅ Exponer funciones globalmente para compatibilidad con HTML onclick
 window.updateComputersList = updateComputersList;
 window.removeComputer = removeComputer;
 window.saveNewComputer = saveNewComputer;
-window.updateNewPcPortList = updateNewPcPortList;
+window.updateComputerVlanSelect = updateComputerVlanSelect;
+window.updatePortPreview = updatePortPreview;
+// window.updateNewPcPortList = updateNewPcPortList;
 window.setCurrentSwitchForComputers = setCurrentSwitchForComputers;
 window.getCurrentSwitchForComputers = getCurrentSwitchForComputers;

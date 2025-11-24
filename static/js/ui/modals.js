@@ -4,7 +4,8 @@ import {
     setCurrentSwitchForComputers, 
     getCurrentSwitchForComputers,
     updateComputersList,
-    updateNewPcPortList
+    updatePortPreview,
+
 } from '../devices/switch-computers.js';
 
 //---- Manejo de modal Manage Computers Modal ----
@@ -141,8 +142,9 @@ export function openAddComputerModal() {
         vlanSelect.appendChild(option);
     }
     
-    // Inicializar lista de puertos
-    updateNewPcPortList();
+    // // Inicializar lista de puertos
+    // updateNewPcPortList();
+    updatePortPreview();
     
     console.log('Abriendo modal...');
     document.getElementById('add-computer-modal').style.display = 'block';

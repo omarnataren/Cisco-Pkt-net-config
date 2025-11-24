@@ -4,10 +4,74 @@
  * Guarda una nueva conexión entre dos dispositivos
  * Puede ser conexión normal o EtherChannel según la selección del usuario
  */
+/**
+ * Verifica si un puerto ya está en uso en cualquier conexión
+ * o computadora conectada en toda la topología.
+ */
+window.isPortInUseCorrect = function (nodeId, fullPortString) {
+
+    // Si viene vacío, null o undefined → no está en uso
+    if (!fullPortString || typeof fullPortString !== "string") {
+        return false;
+    }
+
+    // Separar el tipo y el número
+    // fullPortString = "FastEthernet0/1"
+    let type = "";
+    let number = "";
+
+    try {
+        type = fullPortString.replace(/[0-9\/]+$/, ""); // "FastEthernet"
+        number = fullPortString.replace(/^\D+/, "");    // "0/1"
+    } catch (e) {
+        console.warn("Formato inválido de puerto:", fullPortString);
+        return false;
+    }
+
+    // 1. Revisar TODAS las conexiones del grafo
+    const edges = window.edges.get();
+
+    for (const edge of edges) {
+
+        // Revisar origen
+        if (
+            edge.from === nodeId &&
+            edge.data?.fromInterface &&
+            edge.data.fromInterface.type === type &&
+            edge.data.fromInterface.number === number
+        ) {
+            return true;
+        }
+
+        // Revisar destino
+        if (
+            edge.to === nodeId &&
+            edge.data?.toInterface &&
+            edge.data.toInterface.type === type &&
+            edge.data.toInterface.number === number
+        ) {
+            return true;
+        }
+    }
+
+    // 2. Revisar PCs conectadas
+    const node = window.nodes.get(nodeId);
+    if (node?.data?.computers) {
+        for (const pc of node.data.computers) {
+            if (pc.portNumber === fullPortString) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+};
+
+
+
 export function saveConnection() {
     const connectionType = document.getElementById('new-connection-type').value;
     
-    // Encontrar el ID del nodo destino
     let toNodeId = null;
     const toNameElement = document.getElementById('conn-to-name');
     window.nodes.forEach(node => {
@@ -19,7 +83,20 @@ export function saveConnection() {
     const fromNode = window.nodes.get(window.firstNodeConnection);
     const toNode = window.nodes.get(toNodeId);
     
-    // Determinar si debe tener direcciones de ruteo (solo router o switch_core)
+    // Verificar si el puerto de la conexión de origen está en uso
+    const fromPort = document.getElementById('conn-from-number').value.trim();
+    if (isPortInUseCorrect(fromPort)) {
+        window.showNotification(`El puerto ${fromPort} ya está en uso`, 'error');
+        return;
+    }
+
+    // Verificar si el puerto de la conexión de destino está en uso
+    const toPort = document.getElementById('conn-to-number').value.trim();
+    if (isPortInUseCorrect(toPort)) {
+        window.showNotification(`El puerto ${toPort} ya está en uso`, 'error');
+        return;
+    }
+    
     const isRoutingEdge = (fromNode.data.type === 'router' || fromNode.data.type === 'switch_core') &&
                         (toNode.data.type === 'router' || toNode.data.type === 'switch_core');
     
@@ -64,13 +141,12 @@ export function saveConnection() {
                 toType: toType,
                 toRange: toRange
             },
-            // Mantener interfaces para compatibilidad
             fromInterface: { type: fromType, number: fromRange },
             toInterface: { type: toType, number: toRange },
             routingDirection: initialDirection,
             connectionType: 'etherchannel'
         };
-        // Estilo visual para EtherChannel
+        // Estilo visual para EtherChannel (3 líneas gruesas)
         edgeData.width = 6;
         edgeData.dashes = [2, 2];
         edgeData.smooth = { type: 'continuous' };
@@ -83,7 +159,6 @@ export function saveConnection() {
         const modal = document.getElementById('connection-modal');
         const autoAssignedMode = modal.dataset.autoAssigned; // 'true', 'partial', o 'false'
         if (autoAssignedMode === 'true' || autoAssignedMode === 'partial') {
-            // Hay al menos una interfaz auto-asignada
             const fromIfaceData = modal.dataset.fromInterface;
             const toIfaceData = modal.dataset.toInterface;
             
@@ -147,6 +222,7 @@ export function saveConnection() {
     window.firstNodeConnection = null;
     document.getElementById('connect-btn').classList.remove('active');
 }
+
 
 // Exportar funciones a window para compatibilidad con onclick en HTML
 window.saveConnection = saveConnection;

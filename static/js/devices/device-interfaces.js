@@ -1,19 +1,26 @@
-// ✅ Importaciones optimizadas - sin importar constantes, se usan desde window
-
 /**
  * Obtiene la siguiente interfaz disponible para un dispositivo
+ * Combina detección automática en tiempo real + soporte para modelos físicos
  * @param {string} deviceName - Nombre del dispositivo
  * @param {string} deviceType - Tipo de dispositivo (router, switch, switch_core, computer)
  * @param {string} model - Modelo del dispositivo (opcional, para modo físico)
  * @returns {object|null} - {type, number} o null si no hay disponibles
  */
 export function getNextAvailableInterface(deviceName, deviceType, model = null) {
-    // Inicializar rastreador si no existe
-    if (!window.usedInterfaces[deviceName]) {
-        window.usedInterfaces[deviceName] = [];
+
+    // Buscar el nodo real por nombre
+    const nodeList = window.nodes.get({
+        filter: n => n.data.name === deviceName
+    });
+
+    if (!nodeList.length) {
+        console.error("No se encontró el dispositivo:", deviceName);
+        return null;
     }
-    
-    // Obtener las interfaces según el modo (físico o digital)
+
+    const node = nodeList[0];
+
+    // Determinar el orden de interfaces según el modo y tipo de dispositivo
     let interfaceOrder;
     
     if (window.deviceMode === 'physical' && model) {
@@ -23,27 +30,44 @@ export function getNextAvailableInterface(deviceName, deviceType, model = null) 
         // Modo digital: usar interfaces genéricas
         if (deviceType === 'router') {
             interfaceOrder = window.ROUTER_INTERFACE_ORDER;
-        } else if (deviceType === 'switch') {
+        } 
+        else if (deviceType === 'switch') {
             interfaceOrder = window.SWITCH_INTERFACE_ORDER;
-        } else if (deviceType === 'switch_core') {
+        } 
+        else if (deviceType === 'switch_core') {
             interfaceOrder = window.SWITCH_CORE_INTERFACE_ORDER;
-        } else {
+        }
+        else if (deviceType === 'computer') {
+            interfaceOrder = window.COMPUTER_INTERFACE_ORDER;
+        }
+        else {
+            console.warn("Dispositivo no soportado en auto-asignación:", deviceType);
             return null;
         }
     }
-    
-    // Buscar la siguiente interfaz disponible
+
+    // Recorrer todas las interfaces posibles en orden
     for (let iface of interfaceOrder) {
-        const key = `${iface.type}${iface.number}`;
-        if (!window.usedInterfaces[deviceName].includes(key)) {
-            window.usedInterfaces[deviceName].push(key);
-            return { type: iface.type, number: iface.number };
+
+        // Crear string completo (ej: "FastEthernet0/1")
+        const fullPortString = `${iface.type}${iface.number}`;
+
+        // Usar detección en tiempo real con isPortInUseCorrect
+        const inUse = window.isPortInUseCorrect(node.id, fullPortString);
+
+        // Si NO está en uso, devolverlo
+        if (!inUse) {
+            return {
+                type: iface.type,
+                number: iface.number
+            };
         }
     }
-    
-    console.error(`No hay más interfaces disponibles para ${deviceName} (${deviceType}${model ? ' - ' + model : ''})`);
+
+    console.error(`No hay interfaces disponibles para ${deviceType} ${deviceName}${model ? ' - ' + model : ''}`);
     return null;
 }
+
 
 /**
  * Libera una interfaz de un dispositivo (al eliminar conexión)
@@ -88,3 +112,4 @@ export function updateFromInterfaceList() {
 window.getNextAvailableInterface = getNextAvailableInterface;
 window.releaseInterface = releaseInterface;
 window.updateFromInterfaceList = updateFromInterfaceList;
+
