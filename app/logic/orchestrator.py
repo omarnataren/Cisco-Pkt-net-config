@@ -174,6 +174,19 @@ def handle_visual_topology(topology):
                     unique_pc_name = f"PC{pc_counter}"
                     pc_counter += 1
                     
+                    # Parsear el puerto completo (ej: "FastEthernet0/1")
+                    port_full = pc.get('portNumber', '')
+                    
+                    # Separar tipo y número
+                    import re
+                    match = re.match(r'^([A-Za-z]+)(.+)$', port_full)
+                    if match:
+                        port_type = match.group(1)  # "FastEthernet"
+                        port_number = match.group(2)  # "0/1"
+                    else:
+                        port_type = 'FastEthernet'
+                        port_number = '0/1'
+                    
                     # Crear estructura compatible con el formato de nodo
                     pc_node = {
                         'id': f"{s['id']}_pc_{pc['name']}",  # ID único basado en el switch
@@ -181,7 +194,7 @@ def handle_visual_topology(topology):
                             'name': unique_pc_name,  # Usar nombre único global
                             'type': 'computer',
                             'vlan': pc.get('vlan'),
-                            'port': f"{pc['portType']}{pc['portNumber']}"
+                            'port': port_full
                         },
                         # Posicionar cerca del switch
                         'x': s.get('x', 0) + 75 - mov_in_x,  
@@ -198,8 +211,8 @@ def handle_visual_topology(topology):
                         'to': pc_node['id'],
                         'data': {
                             'fromInterface': {
-                                'type': expand_interface_type(pc['portType']),  # Expandir fa -> FastEthernet
-                                'number': pc['portNumber']
+                                'type': port_type,
+                                'number': port_number
                             },
                             'toInterface': {
                                 'type': 'FastEthernet',
@@ -219,6 +232,19 @@ def handle_visual_topology(topology):
                     unique_pc_name = f"PC{pc_counter}"
                     pc_counter += 1
                     
+                    # Parsear el puerto completo (ej: "FastEthernet0/1")
+                    port_full = pc.get('portNumber', '')
+                    
+                    # Separar tipo y número
+                    import re
+                    match = re.match(r'^([A-Za-z]+)(.+)$', port_full)
+                    if match:
+                        port_type = match.group(1)  # "FastEthernet"
+                        port_number = match.group(2)  # "0/1"
+                    else:
+                        port_type = 'FastEthernet'
+                        port_number = '0/1'
+                    
                     # Crear estructura compatible con el formato de nodo
                     pc_node = {
                         'id': f"{swc['id']}_pc_{pc['name']}",  # ID único basado en el switch core
@@ -226,7 +252,7 @@ def handle_visual_topology(topology):
                             'name': unique_pc_name,  # Usar nombre único global
                             'type': 'computer',
                             'vlan': pc.get('vlan'),
-                            'port': f"{pc['portType']}{pc['portNumber']}"
+                            'port': port_full
                         },
                         # Posicionar cerca del switch core
                         'x': swc.get('x', 0) + 75 - mov_in_x,
@@ -243,8 +269,8 @@ def handle_visual_topology(topology):
                         'to': pc_node['id'],
                         'data': {
                             'fromInterface': {
-                                'type': expand_interface_type(pc['portType']),  # Expandir fa -> FastEthernet
-                                'number': pc['portNumber']
+                                'type': port_type,
+                                'number': port_number
                             },
                             'toInterface': {
                                 'type': 'FastEthernet',
@@ -629,9 +655,8 @@ def handle_visual_topology(topology):
                     if vlan_name:
                         vlan_num = ''.join(filter(str.isdigit, vlan_name))
                         if vlan_num:
-                            # Expandir tipo de interfaz (fa -> FastEthernet, gi -> GigabitEthernet)
-                            port_type_full = expand_interface_type(pc['portType'])
-                            port_full = f"{port_type_full}{pc['portNumber']}"
+                            # El puerto ya viene completo: "FastEthernet0/1" o "GigabitEthernet1/0/1"
+                            port_full = pc.get('portNumber', '')
                             computer_ports_swc.append({
                                 'interface': port_full,
                                 'vlan': vlan_num,
@@ -765,7 +790,8 @@ def handle_visual_topology(topology):
                     if vlan_name:
                         vlan_num = ''.join(filter(str.isdigit, vlan_name))
                         if vlan_num:
-                            port_full = f"{pc['portType']}{pc['portNumber']}"
+                            # El puerto ya viene completo: "FastEthernet0/1" o "GigabitEthernet1/0/1"
+                            port_full = pc.get('portNumber', '')
                             computer_ports.append({
                                 'interface': port_full,
                                 'vlan': vlan_num,

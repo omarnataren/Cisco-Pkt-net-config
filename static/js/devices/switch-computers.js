@@ -37,7 +37,7 @@ export function updateComputersList() {
     item.innerHTML = `
         <div>
             <div style="color: #58a6ff; font-weight: bold; margin-bottom: 4px;">${pc.name}</div>
-            <div style="color: #8b949e; font-size: 11px;">Puerto: ${pc.portType}${pc.portNumber} • VLAN: ${pc.vlan}</div>
+            <div style="color: #8b949e; font-size: 11px;">Puerto: ${pc.portNumber} • VLAN: ${pc.vlan}</div>
         </div>
         <button onclick="removeComputer(${index})" style="background: #da3633; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Eliminar</button>
     `;
@@ -79,6 +79,10 @@ window.autoAssignPort = function() {
     portInput.value = `FastEthernet0/${nextPortNumber}`;
 };
 
+/**
+ * Actualiza la vista previa del puerto que se asignará
+ * Considera modo físico y modelo del switch
+ */
 export function updatePortPreview() {
 
     const vlan = document.getElementById('new-pc-vlan').value;
@@ -89,22 +93,43 @@ export function updatePortPreview() {
         return;
     }
 
-    let index = 1;
-    let candidate;
+    if (!currentSwitchForComputers) {
+        preview.value = "";
+        return;
+    }
 
-    // Intentar desde FastEthernet0/1, 0/2, 0/3, ...
-    while (true) {
-        candidate = `FastEthernet0/${index}`;
+    // Obtener interfaces disponibles según modo y modelo
+    let interfaceOrder;
+    const switchType = currentSwitchForComputers.data.type;
+    const switchModel = currentSwitchForComputers.data.model;
 
+    if (window.deviceMode === 'physical' && switchModel) {
+        // Modo físico: usar interfaces del modelo específico
+        interfaceOrder = window.getDeviceInterfaces(switchType, switchModel);
+    } else {
+        // Modo digital: usar interfaces genéricas
+        if (switchType === 'switch') {
+            interfaceOrder = window.SWITCH_INTERFACE_ORDER;
+        } else if (switchType === 'switch_core') {
+            interfaceOrder = window.SWITCH_CORE_INTERFACE_ORDER;
+        } else {
+            preview.value = "";
+            return;
+        }
+    }
+
+    // Buscar el primer puerto disponible
+    for (let iface of interfaceOrder) {
+        const candidate = `${iface.type}${iface.number}`;
         const used = window.isPortInUseCorrect(currentSwitchForComputers.id, candidate);
 
         if (!used) {
             preview.value = candidate;
-            break;
+            return;
         }
-
-        index++;
     }
+
+    preview.value = "Sin puertos disponibles";
 }
 
 
@@ -128,40 +153,25 @@ export function saveNewComputer() {
         currentSwitchForComputers.data.computers = [];
     }
 
-    // Antes de guardar
-const previewPort = document.getElementById('new-pc-port-preview').value;
+    // 2. Obtener el puerto del preview
+    const port = document.getElementById('new-pc-port-preview').value;
 
-
-    // 2. Buscar el primer puerto FastEthernet disponible (REAL)
-    let index = 1;
-    let port;
-
-    while (true) {
-        const candidate = `FastEthernet0/${index}`;
-
-        // Validar puerto contra TODA la topología
-        const used = window.isPortInUseCorrect(currentSwitchForComputers.id, candidate);
-
-        if (!used) {
-            port = candidate;
-            break;
-        }
-
-        index++;
+    if (!port || port === "Sin puertos disponibles") {
+        showNotification('No hay puertos disponibles en el switch', 'error');
+        return;
     }
 
     // 3. Agregar la computadora
     currentSwitchForComputers.data.computers.push({
         name: name,
-        portType: "FastEthernet",
-        portNumber: previewPort,
+        portNumber: port,  // Solo guardamos el string completo: "FastEthernet0/1"
         vlan: vlan
     });
 
     window.nodes.update(currentSwitchForComputers);
     updateComputersList();
     closeAddComputerModal();
-    showNotification(`Computadora ${name} agregada con el puerto ${port}`);
+    showNotification(`Computadora ${name} agregada en ${port}`);
 }
 
 // Eliminar computadora
