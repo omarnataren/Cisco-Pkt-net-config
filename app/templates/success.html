@@ -203,6 +203,15 @@
     <div class="header">
       <h1>Configuración CLI de Routers</h1>
       <p style="margin: 10px 0 0 0; color: #888;">Comandos generados para Cisco</p>
+      {% if is_physical_mode %}
+      <p style="margin: 10px 0 0 0; color: #ce9178; font-weight: bold;">
+        🔧 Modo Físico - Modelos reales (sin PT Builder)
+      </p>
+      {% else %}
+      <p style="margin: 10px 0 0 0; color: #4ec9b0; font-weight: bold;">
+        💻 Modo Digital - Con PT Builder
+      </p>
+      {% endif %}
     </div>
 
     {% for router in routers %}
@@ -280,7 +289,9 @@
       <button onclick="window.location.href='/download/routers'">🔀 Descargar Routers</button>
       <button onclick="window.location.href='/download/switch_cores'">🔄 Descargar Switch Cores</button>
       <button onclick="window.location.href='/download/switches'">🔌 Descargar Switches</button>
+      {% if not is_physical_mode %}
       <button onclick="window.location.href='/download/ptbuilder'" style="background: #ce9178;">📦 Descargar PTBuilder Script</button>
+      {% endif %}
       <button onclick="window.print()">🖨️ Imprimir</button>
       <button onclick="window.location.href='/'">← Nueva Configuración</button>
     </div>

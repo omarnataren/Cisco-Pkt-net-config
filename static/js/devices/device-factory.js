@@ -59,6 +59,22 @@ case 'computer':
     }
     
     const id = deviceType + '_' + Date.now();
+    
+    // Crear datos del dispositivo
+    const deviceData = {
+        type: deviceType,
+        name: name,
+        connections: [],
+        vlan: null  // Para computadoras
+    };
+    
+    // Si estamos en modo físico, necesitamos pedir el modelo
+    if (window.deviceMode === 'physical' && (deviceType === 'router' || deviceType === 'switch' || deviceType === 'switch_core')) {
+        // Mostrar modal para seleccionar modelo
+        showModelSelectionModal(id, name, shape, x, y, color, deviceData);
+        return;
+    }
+    
     window.nodes.add({
 id: id,
 label: name,
@@ -73,14 +89,112 @@ font: {
     color: '#ffffff',
     size: 11
 },
-data: {
-    type: deviceType,
-    name: name,
-    connections: [],
-    vlan: null  // Para computadoras
-}
+data: deviceData
     });
     
+    finishDeviceCreation();
+    window.showNotification(`${name} agregado exitosamente`, 'success');
+}
+
+/**
+ * Muestra modal para seleccionar modelo físico del dispositivo
+ */
+function showModelSelectionModal(id, name, shape, x, y, color, deviceData) {
+    const deviceType = deviceData.type;
+    const models = window.getAvailableModels(deviceType);
+    
+    if (models.length === 0) {
+        // No hay modelos, agregar sin modelo
+        window.nodes.add({
+            id, label: name, title: name, shape, size: 30,
+            x, y, fixed: false, color,
+            font: { color: '#ffffff', size: 11 },
+            data: deviceData
+        });
+        finishDeviceCreation();
+        return;
+    }
+    
+    // Crear modal dinámicamente
+    const modal = document.createElement('div');
+    modal.id = 'model-selection-modal';
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Seleccionar Modelo - ${name}</h2>
+            <div class="form-group">
+                <label>Modelo:</label>
+                <select id="model-select" class="form-control">
+                    ${models.map(m => `<option value="${m.model}">${m.displayName}</option>`).join('')}
+                </select>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="window.confirmModelSelection()">Confirmar</button>
+                <button class="btn btn-secondary" onclick="window.cancelModelSelection()">Cancelar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Guardar datos temporales
+    window.tempDeviceData = { id, name, shape, x, y, color, deviceData };
+}
+
+/**
+ * Confirma la selección del modelo
+ */
+window.confirmModelSelection = function() {
+    const modelSelect = document.getElementById('model-select');
+    const selectedModel = modelSelect.value;
+    
+    const { id, name, shape, x, y, color, deviceData } = window.tempDeviceData;
+    
+    // Agregar modelo a los datos del dispositivo
+    deviceData.model = selectedModel;
+    
+    // Actualizar el label para incluir el modelo
+    const displayName = window.getDeviceDisplayName(deviceData.type, selectedModel);
+    const label = `${name}\n(${selectedModel})`;
+    
+    window.nodes.add({
+        id, 
+        label, 
+        title: displayName, 
+        shape, 
+        size: 30,
+        x, y, 
+        fixed: false, 
+        color,
+        font: { color: '#ffffff', size: 11 },
+        data: deviceData
+    });
+    
+    // Cerrar modal
+    const modal = document.getElementById('model-selection-modal');
+    modal.remove();
+    
+    window.tempDeviceData = null;
+    finishDeviceCreation();
+};
+
+/**
+ * Cancela la creación del dispositivo
+ */
+window.cancelModelSelection = function() {
+    const modal = document.getElementById('model-selection-modal');
+    modal.remove();
+    window.tempDeviceData = null;
+    finishDeviceCreation();
+    window.showNotification('Creación de dispositivo cancelada', 'info');
+};
+
+/**
+ * Finaliza el proceso de creación de dispositivo
+ */
+function finishDeviceCreation() {
     // Desactivar modo de posicionamiento
     window.devicePositioningMode = false;
     window.pendingDeviceType = null;
@@ -93,11 +207,9 @@ data: {
         });
     }
     
-    // Remover clase active de todos los botones
-    const buttons = document.querySelectorAll('.btn');
+    // Remover clase active solo de botones de dispositivos (no de botones de modo)
+    const buttons = document.querySelectorAll('.btn:not(.mode-btn)');
     buttons.forEach(btn => btn.classList.remove('active'));
-    
-    window.showNotification(`${name} agregado exitosamente`, 'success');
 }
 
 // Exportar funciones a window para compatibilidad con onclick en HTML

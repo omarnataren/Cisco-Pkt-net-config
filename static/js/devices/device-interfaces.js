@@ -1,12 +1,12 @@
-// ✅ Importaciones optimizadas - sin importar constantes, se usan desde window
-
 /**
  * Obtiene la siguiente interfaz disponible para un dispositivo
+ * Combina detección automática en tiempo real + soporte para modelos físicos
  * @param {string} deviceName - Nombre del dispositivo
  * @param {string} deviceType - Tipo de dispositivo (router, switch, switch_core, computer)
+ * @param {string} model - Modelo del dispositivo (opcional, para modo físico)
  * @returns {object|null} - {type, number} o null si no hay disponibles
  */
-export function getNextAvailableInterface(deviceName, deviceType) {
+export function getNextAvailableInterface(deviceName, deviceType, model = null) {
 
     // Buscar el nodo real por nombre
     const nodeList = window.nodes.get({
@@ -20,21 +20,30 @@ export function getNextAvailableInterface(deviceName, deviceType) {
 
     const node = nodeList[0];
 
-    // Determinar el orden de interfaces según el tipo de dispositivo
+    // Determinar el orden de interfaces según el modo y tipo de dispositivo
     let interfaceOrder;
-
-    if (deviceType === 'router') {
-        interfaceOrder = window.ROUTER_INTERFACE_ORDER;
-    } 
-    else if (deviceType === 'switch') {
-        interfaceOrder = window.SWITCH_INTERFACE_ORDER;
-    } 
-    else if (deviceType === 'switch_core') {
-        interfaceOrder = window.SWITCH_CORE_INTERFACE_ORDER;
-    } 
-    else {
-        console.warn("Dispositivo no soportado en auto-asignación:", deviceType);
-        return null;
+    
+    if (window.deviceMode === 'physical' && model) {
+        // Modo físico: usar interfaces del modelo específico
+        interfaceOrder = window.getDeviceInterfaces(deviceType, model);
+    } else {
+        // Modo digital: usar interfaces genéricas
+        if (deviceType === 'router') {
+            interfaceOrder = window.ROUTER_INTERFACE_ORDER;
+        } 
+        else if (deviceType === 'switch') {
+            interfaceOrder = window.SWITCH_INTERFACE_ORDER;
+        } 
+        else if (deviceType === 'switch_core') {
+            interfaceOrder = window.SWITCH_CORE_INTERFACE_ORDER;
+        }
+        else if (deviceType === 'computer') {
+            interfaceOrder = window.COMPUTER_INTERFACE_ORDER;
+        }
+        else {
+            console.warn("Dispositivo no soportado en auto-asignación:", deviceType);
+            return null;
+        }
     }
 
     // Recorrer todas las interfaces posibles en orden
@@ -43,7 +52,7 @@ export function getNextAvailableInterface(deviceName, deviceType) {
         // Crear string completo (ej: "FastEthernet0/1")
         const fullPortString = `${iface.type}${iface.number}`;
 
-        // Usar tu función global NUEVA a prueba de errores
+        // Usar detección en tiempo real con isPortInUseCorrect
         const inUse = window.isPortInUseCorrect(node.id, fullPortString);
 
         // Si NO está en uso, devolverlo
@@ -55,7 +64,7 @@ export function getNextAvailableInterface(deviceName, deviceType) {
         }
     }
 
-    console.error(`No hay interfaces disponibles para ${deviceType} ${deviceName}`);
+    console.error(`No hay interfaces disponibles para ${deviceType} ${deviceName}${model ? ' - ' + model : ''}`);
     return null;
 }
 
@@ -103,3 +112,4 @@ export function updateFromInterfaceList() {
 window.getNextAvailableInterface = getNextAvailableInterface;
 window.releaseInterface = releaseInterface;
 window.updateFromInterfaceList = updateFromInterfaceList;
+

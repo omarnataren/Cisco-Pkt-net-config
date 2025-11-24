@@ -125,6 +125,9 @@ def handle_visual_topology(topology):
         # Obtener el primer octeto de la red base (por defecto 19 si no se especifica)
         base_octet = topology.get('baseNetworkOctet', 19)
         
+        # Detectar si es modo físico
+        is_physical_mode = topology.get('mode') == 'physical'
+        
         # DEBUG: Mostrar coordenadas recibidas del cliente
         print("\n🔍 COORDINADAS RECIBIDAS DEL CLIENTE:")
         for node in nodes:
@@ -884,18 +887,21 @@ def handle_visual_topology(topology):
         global config_files_content
         config_files_content = generate_separated_txt_files(router_configs)
         
-        # Generar script PTBuilder y guardar en config_files_content
-        ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
-        config_files_content['ptbuilder'] = ptbuilder_content
+        # Solo generar script PTBuilder si NO es modo físico
+        if not is_physical_mode:
+            ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
+            config_files_content['ptbuilder'] = ptbuilder_content
         
         # Transferir al config de Flask para que las rutas de descarga puedan acceder
         current_app.config['CONFIG_FILES_CONTENT'] = config_files_content
         
         return render_template("success.html", 
                              routers=router_configs,
-                             vlan_summary=vlan_summary)
+                             vlan_summary=vlan_summary,
+                             is_physical_mode=is_physical_mode)
     
     except Exception as e:
         import traceback
         error_detail = traceback.format_exc()
         return f"Error procesando topología: {str(e)}<br><pre>{error_detail}</pre>", 400
+

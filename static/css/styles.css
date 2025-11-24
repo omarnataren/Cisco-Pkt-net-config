@@ -71,6 +71,34 @@
             background: #2ea043;
         }
         
+        /* Botones de modo (Digital/Físico) */
+        .mode-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            font-size: 13px;
+            padding: 8px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .mode-btn:hover:not(.active) {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+        
+        .mode-btn.active {
+            background: #1f6feb !important;
+            border-color: #1f6feb !important;
+            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3) !important;
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        
+        .mode-btn.active:hover {
+            background: #1f6feb !important;
+            border-color: #58a6ff !important;
+        }
+        
         .btn-secondary {
             background: #21262d;
             border: 1px solid #30363d;
@@ -109,6 +137,36 @@
             border-radius: 6px;
             color: #c9d1d9;
             font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #1f6feb;
+            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2);
+        }
+        
+        .input-group select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 12px;
+            padding-right: 30px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        
+        .input-group select:hover {
+            border-color: #8b949e;
+        }
+        
+        .input-group select option {
+            background: #161b22;
+            color: #c9d1d9;
+            padding: 8px;
         }
         
         .center-panel {
