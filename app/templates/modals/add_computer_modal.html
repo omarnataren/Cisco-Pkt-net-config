@@ -12,21 +12,15 @@
             </div>
             
             <div class="input-group">
-                <label>Puerto del Switch</label>
-                <div style="display: flex; gap: 10px;">
-                    <select id="new-pc-port-type" onchange="updateNewPcPortList()" style="flex: 0 0 120px;">
-                        <option value="fa">FastEthernet</option>
-                        <option value="gi">GigabitEthernet</option>
-                    </select>
-                    <select id="new-pc-port-number" style="flex: 1;">
-                        <option value="">Seleccionar interfaz...</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="input-group">
                 <label>VLAN Asignada</label>
-                <select id="new-pc-vlan"></select>
+                <select id="new-pc-vlan" onchange="updatePortPreview()">
+                    <option value="">-- Selecciona una VLAN --</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Puerto Asignado Automáticamente</label>
+                <input type="text" id="new-pc-port-preview" disabled placeholder="Puerto Asignado">
             </div>
         </div>
         <div class="modal-footer">
