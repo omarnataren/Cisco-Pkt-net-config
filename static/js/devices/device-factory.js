@@ -12,7 +12,7 @@ export function addDevice(type) {
     }
     
     // Cambiar cursor y mostrar mensaje
-    document.getElementById('network-canvas').style.cursor = 'crosshair';
+    document.getElementById('network-canvas').style.cursor = 'cell';
     window.showNotification(`Haz click en el área de trabajo para posicionar el dispositivo`, 'info');
     
     // Cambiar estilo del botón para indicar que está activo
@@ -28,26 +28,26 @@ if (btn.getAttribute('onclick') === `addDevice('${type}')`) {
 export function createDeviceAtPosition(x, y) {
     if (!window.devicePositioningMode || !window.pendingDeviceType) return;
     
-    let name, color, shape, deviceType;
+   let name, shape, deviceType, image, color;
     const type = window.pendingDeviceType;
     
     switch(type) {
 case 'router':
     name = 'R' + window.routerCounter++;
-    color = { background: '#6e7681', border: '#8b949e' };
-    shape = 'circle';
+    image = '/static/assets/icons/router.png';
+    shape = 'image'; 
     deviceType = 'router';
     break;
 case 'switch':
     name = 'SW' + window.switchCounter++;
-    color = { background: '#6e7681', border: '#8b949e' };
-    shape = 'box';
+     image = '/static/assets/icons/switch.png';
+    shape = 'image'; 
     deviceType = 'switch';
     break;
 case 'switch_core':
     name = 'SWC' + window.switchCoreCounter++;
-    color = { background: '#6e7681', border: '#8b949e' };
-    shape = 'box';
+    image = '/static/assets/icons/switch-core.png';
+    shape = 'image';
     deviceType = 'switch_core';
     break;
 case 'computer':
@@ -58,20 +58,20 @@ case 'computer':
     break;
 case 'wlc':
     name = 'WLC' + window.wlcCounter++;
-    color = { background: '#87CEEB', border: '#4682B4' };
-    shape = 'box';
+    image = '/static/assets/icons/WLC.png';
+    shape = 'image'; 
     deviceType = 'wlc';
     break;
 case 'server':
     name = 'S' + window.serverCounter++;
-    color = { background: '#87CEEB', border: '#4682B4' };
-    shape = 'box';
+    image = '/static/assets/icons/server.png';
+    shape = 'image'; 
     deviceType = 'server';
     break;
 case 'ap':
     name = 'AP' + window.apCounter++;
-    color = { background: '#87CEEB', border: '#4682B4' };
-    shape = 'box';
+     image = '/static/assets/icons/accespoint.png';
+    shape = 'image'; 
     deviceType = 'ap';
     break;
     }
@@ -93,22 +93,31 @@ case 'ap':
         return;
     }
     
-    window.nodes.add({
-id: id,
-label: name,
-title: name,
-shape: shape,
-size: 30,
-x: x,  // Coordenada X exacta posicionada por el usuario
-y: y,  // Coordenada Y exacta posicionada por el usuario - Se usarán en PTBuilder
-fixed: false,  // Permitir que el nodo sea arrastrable
-color: color,
-font: {
-    color: '#ffffff',
-    size: 11
-},
-data: deviceData
-    });
+    // Crear objeto de configuración del nodo
+    const nodeConfig = {
+        id: id,
+        label: name,
+        title: name,
+        shape: shape,
+        size: 30,
+        x: x,  // Coordenada X exacta posicionada por el usuario
+        y: y,  // Coordenada Y exacta posicionada por el usuario - Se usarán en PTBuilder
+        fixed: false,  // Permitir que el nodo sea arrastrable
+        font: {
+            color: '#ffffff',
+            size: 11
+        },
+        data: deviceData
+    };
+    
+    // Agregar imagen o color según el tipo
+    if (image) {
+        nodeConfig.image = image;
+    } else if (color) {
+        nodeConfig.color = color;
+    }
+    
+    window.nodes.add(nodeConfig);
     
     finishDeviceCreation();
     window.showNotification(`${name} agregado exitosamente`, 'success');
@@ -123,12 +132,18 @@ function showModelSelectionModal(id, name, shape, x, y, color, deviceData) {
     
     if (models.length === 0) {
         // No hay modelos, agregar sin modelo
-        window.nodes.add({
+        const nodeConfig = {
             id, label: name, title: name, shape, size: 30,
-            x, y, fixed: false, color,
+            x, y, fixed: false,
             font: { color: '#ffffff', size: 11 },
             data: deviceData
-        });
+        };
+        
+        if (color) {
+            nodeConfig.color = color;
+        }
+        
+        window.nodes.add(nodeConfig);
         finishDeviceCreation();
         return;
     }
@@ -177,7 +192,8 @@ window.confirmModelSelection = function() {
     const displayName = window.getDeviceDisplayName(deviceData.type, selectedModel);
     const label = `${name}\n(${selectedModel})`;
     
-    window.nodes.add({
+    // Crear objeto de configuración del nodo
+    const nodeConfig = {
         id, 
         label, 
         title: displayName, 
@@ -185,10 +201,16 @@ window.confirmModelSelection = function() {
         size: 30,
         x, y, 
         fixed: false, 
-        color,
         font: { color: '#ffffff', size: 11 },
         data: deviceData
-    });
+    };
+    
+    // Agregar color
+    if (color) {
+        nodeConfig.color = color;
+    }
+    
+    window.nodes.add(nodeConfig);
     
     // Cerrar modal
     const modal = document.getElementById('model-selection-modal');

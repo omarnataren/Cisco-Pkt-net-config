@@ -1,4 +1,12 @@
 /* Modal */
+  :root {
+    --color-bg-cards-light: #d9dadc;
+    --color-bg-cards-hover-light: #c0c0c0; 
+    --color-txt-light: #000000;
+    --color-titles-light: #185abb;
+    --color-bg-light: #ffffff;
+  
+        }
         .modal {
             display: none;
             position: fixed;
@@ -13,7 +21,7 @@
         }
         
         .modal-content {
-            background: #161b22;
+            background: var(--color-bg-light);
             margin: 0 auto;
             padding: 0;
             border: 1px solid #30363d;
@@ -27,7 +35,7 @@
         }
         
         .modal-header h3 {
-            color: #58a6ff;
+            color: var(--color-titles-light);
             font-size: 18px;
             margin: 0;
         }
@@ -43,7 +51,7 @@
         .modal-close {
             background: none;
             border: none;
-            color: #8b949e;
+            color: var(--color-txt-light);
             font-size: 24px;
             cursor: pointer;
             padding: 0;
@@ -80,10 +88,10 @@
         .modal select {
             width: 100%;
             padding: 10px 12px;
-            background: #0d1117;
+            background: var(--color-bg-cards-light);
             border: 1px solid #30363d;
             border-radius: 6px;
-            color: #c9d1d9;
+            color: var(--color-txt-light);
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
@@ -99,18 +107,18 @@
         
         .modal select:hover {
             border-color: #8b949e;
-            background-color: #161b22;
+            background-color: var(--color-bg-cards-hover-light);
         }
         
         .modal select:focus {
             outline: none;
-            border-color: #1f6feb;
+            border-color: #185abb;
             box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2);
         }
         
         .modal select option {
-            background: #161b22;
-            color: #c9d1d9;
+            background: var(--color-bg-cards-light);
+            color: var(--color-txt-light);
             padding: 10px;
         }
         
@@ -119,10 +127,10 @@
         .modal input[type="number"] {
             width: 100%;
             padding: 10px 12px;
-            background: #0d1117;
+            background: var(--color-bg-cards-light);
             border: 1px solid #30363d;
             border-radius: 6px;
-            color: #c9d1d9;
+            color: var(--color-txt-light);
             font-size: 14px;
             transition: all 0.2s;
         }
@@ -130,12 +138,12 @@
         .modal input[type="text"]:hover,
         .modal input[type="number"]:hover {
             border-color: #8b949e;
-            background-color: #161b22;
+            background-color: var(--color-bg-cards-light);
         }
         
         .modal input[type="text"]:focus,
         .modal input[type="number"]:focus {
             outline: none;
             border-color: #1f6feb;
-            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2);
+            
         }
