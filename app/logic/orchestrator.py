@@ -654,13 +654,9 @@ def handle_visual_topology(topology):
                     break
             
             # Determinar qué VLANs declarar
-            if has_switches_connected:
-                # Si hay switches conectados, declarar TODAS las VLANs del proyecto
-                for vlan in vlans:
-                    vlans_to_declare.add(vlan['name'])
-            else:
-                # Si NO hay switches, solo declarar las VLANs con computadoras
-                vlans_to_declare = vlans_with_computers.copy()
+            # Siempre declarar TODAS las VLANs del proyecto en los Switch Cores
+            for vlan in vlans:
+                vlans_to_declare.add(vlan['name'])
             
             # Crear VLANs
             for vlan_name in sorted(vlans_to_declare):
@@ -830,45 +826,45 @@ def handle_visual_topology(topology):
             })
             vlan_counter = 1
             for vlan in vlans:
-                if vlan['name'] in vlans_with_computers:  # Solo crear SVI si tiene computadoras
-                    vlan_num = ''.join(filter(str.isdigit, vlan['name']))
-                    if vlan_num:
-                        prefix = int(vlan['prefix'])
+                # Generar SVI para TODAS las VLANs (sin filtrar por computadoras)
+                vlan_num = ''.join(filter(str.isdigit, vlan['name']))
+                if vlan_num:
+                    prefix = int(vlan['prefix'])
                         
-                        # ✅ VALIDACIÓN: Omitir redes /31 y /32
-                        if prefix >= 31:
-                            print(f"⚠️  ADVERTENCIA: VLAN {vlan['name']} con prefijo /{prefix} omitida en {name}.")
+                    # ✅ VALIDACIÓN: Omitir redes /31 y /32
+                    if prefix >= 31:
+                        print(f"⚠️  ADVERTENCIA: VLAN {vlan['name']} con prefijo /{prefix} omitida en {name}.")
+                        continue
+                    
+                    # Generar red
+                    blocks = generate_blocks(base, prefix, 1, used)
+                    if blocks:
+                        network = blocks[0]
+                        hosts = list(network.hosts())
+                        
+                        # Verificar suficientes hosts
+                        if len(hosts) < 2:
+                            print(f"⚠️  ADVERTENCIA: VLAN {vlan['name']} no tiene suficientes IPs en {name}.")
                             continue
                         
-                        # Generar red
-                        blocks = generate_blocks(base, prefix, 1, used)
-                        if blocks:
-                            network = blocks[0]
-                            hosts = list(network.hosts())
-                            
-                            # Verificar suficientes hosts
-                            if len(hosts) < 2:
-                                print(f"⚠️  ADVERTENCIA: VLAN {vlan['name']} no tiene suficientes IPs en {name}.")
-                                continue
-                            
-                            gateway = hosts[-1]
-                            
-                            # Interface VLAN
-                            config_lines.append(f"interface vlan {vlan_num}")
-                            config_lines.append(f" ip address {gateway} {network.netmask}")
-                            config_lines.append(" no shutdown")
-                            config_lines.append("")
-                            
-                            assigned_vlans.append({
-                                'name': vlan['name'],
-                                'termination': vlan_num,
-                                'network': network,
-                                'gateway': str(gateway),
-                                'mask': str(network.netmask),
-                                'is_native': vlan.get('isNative', False)
-                            })
+                        gateway = hosts[-1]
                         
-                        vlan_counter += 1
+                        # Interface VLAN
+                        config_lines.append(f"interface vlan {vlan_num}")
+                        config_lines.append(f" ip address {gateway} {network.netmask}")
+                        config_lines.append(" no shutdown")
+                        config_lines.append("")
+                        
+                        assigned_vlans.append({
+                            'name': vlan['name'],
+                            'termination': vlan_num,
+                            'network': network,
+                            'gateway': str(gateway),
+                            'mask': str(network.netmask),
+                            'is_native': vlan.get('isNative', False)
+                        })
+                    
+                    vlan_counter += 1
             
             # Pools DHCP
             for vlan_data in assigned_vlans:
