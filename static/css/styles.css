@@ -1,15 +1,21 @@
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+   :root {
+    --color-bg-cards-light: #8b949e; 
+    --color-txt-light: #000000;
+    --color-titles-light: #185abb;
+    --color-bg-light: #ffffff;
+  
+}
+    * {
+        margin: 0;
+        padding: 0;
+        
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0d1117;
-            color: #c9d1d9;
+            color: var(--color-txt-light);
             height: 100vh;
-            overflow: hidden;
+           
         }
         
         .container {
@@ -19,32 +25,32 @@
         
         /* Panel Izquierdo */
         .left-panel {
-            width: 280px;
-            background: #161b22;
-            border-right: 1px solid #30363d;
+            width: 270px;
+            border-right: 1px solid #d0d0d0;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
         }
         
+        
         .panel-header {
-            background: #21262d;
+            background: #ececec;
             padding: 20px;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid #d0d0d0;
         }
         
         .panel-header h2 {
-            color: #58a6ff;
+            color: var(--color-titles-light);
             font-size: 18px;
         }
         
         .tool-section {
             padding: 20px;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid #d0d0d0;
         }
         
         .tool-section h3 {
-            color: #c9d1d9;
+            color: var(--color-txt-light);
             font-size: 14px;
             margin-bottom: 15px;
         }
@@ -52,7 +58,7 @@
         .btn {
             width: 100%;
             padding: 10px;
-            background: #238636;
+            background: #28a745;
             color: white;
             border: none;
             border-radius: 6px;
@@ -62,58 +68,60 @@
         }
         
         .btn.active {
-            background-color: #238636 !important;
-            box-shadow: 0 0 10px rgba(35, 134, 54, 0.6);
-            border-color: #30a755;
+            background-color: #28a745 !important;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.6);
+            border-color: #20c997;
         }
 
         .btn:hover {
-            background: #2ea043;
+            background: #218838;
         }
         
         /* Botones de modo (Digital/Físico) */
         .mode-btn {
-            background: #21262d;
-            border: 1px solid #30363d;
+            background: #ececec;
+            border: 1px solid #d0d0d0;
             font-size: 13px;
             padding: 8px;
             transition: all 0.2s;
             font-weight: 500;
+            color: #1a1a1a;
         }
         
         .mode-btn:hover:not(.active) {
-            background: #30363d;
-            border-color: #8b949e;
+            background: #d0d0d0;
+            border-color: #999999;
         }
         
         .mode-btn.active {
-            background: #1f6feb !important;
-            border-color: #1f6feb !important;
-            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3) !important;
+            background: #0051ba !important;
+            border-color: #0051ba !important;
+            box-shadow: 0 0 0 3px rgba(0, 81, 186, 0.3) !important;
             color: #ffffff !important;
             font-weight: 600;
         }
         
         .mode-btn.active:hover {
-            background: #1f6feb !important;
-            border-color: #58a6ff !important;
+            background: #0051ba !important;
+            border-color: #0066ff !important;
         }
         
         .btn-secondary {
-            background: #21262d;
-            border: 1px solid #30363d;
+            background: #ececec;
+            border: 1px solid #d0d0d0;
+            color: #1a1a1a;
         }
         
         .btn-secondary:hover {
-            background: #30363d;
+            background: #d0d0d0;
         }
         
         .btn-danger {
-            background: #da3633;
+            background: #dc3545;
         }
         
         .btn-danger:hover {
-            background: #f85149;
+            background: #e74c3c;
         }
         
         .input-group {
@@ -122,7 +130,7 @@
         
         .input-group label {
             display: block;
-            color: #8b949e;
+            color: var(--color-txt-light);
             font-size: 12px;
             margin-bottom: 5px;
         }
@@ -132,24 +140,24 @@
         .input-group select {
             width: 100%;
             padding: 8px;
-            background: #0d1117;
-            border: 1px solid #30363d;
+            border: 1px solid #d0d0d0;
             border-radius: 6px;
-            color: #c9d1d9;
+            color: var(--color-txt-light);
             font-size: 14px;
-            transition: all 0.2s;
+            background: var(--color-bg-cards-light);
         }
         
         .input-group input:focus,
         .input-group select:focus {
             outline: none;
-            border-color: #1f6feb;
-            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2);
+            border-color: #0051ba;
+            
+            
         }
         
         .input-group select {
             cursor: pointer;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 8px center;
             background-size: 12px;
@@ -160,39 +168,40 @@
         }
         
         .input-group select:hover {
-            border-color: #8b949e;
+            border-color: #999999;
+            background-color: var(--color-bg-cards-light);
         }
         
         .input-group select option {
-            background: #161b22;
-            color: #c9d1d9;
+            
+            color: var(--color-txt-light);
             padding: 8px;
         }
         
         .center-panel {
             flex: 1;
             position: relative;
-            background: #0d1117;
+           
         }
         
         #network-canvas {
             width: 100%;
             height: 100%;
-            background: #0d1117;
+            
         }
         
         /* Panel Derecho */
         .right-panel {
             width: 300px;
-            background: #161b22;
-            border-left: 1px solid #30363d;
+           
+            border-left: 1px solid #d0d0d0;
             overflow-y: auto;
         }
         
         .properties-header {
-            background: #21262d;
+            background: #ececec;
             padding: 20px;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid #d0d0d0;
         }
         
         .properties-content {
@@ -204,13 +213,13 @@
         }
         
         .property-group h4 {
-            color: #58a6ff;
+            color: var(--color-titles-light);
             font-size: 14px;
             margin-bottom: 10px;
         }
         
         .vlan-item {
-            background: #21262d;
+            background: #ececec;
             padding: 10px;
             border-radius: 6px;
             margin-bottom: 8px;
@@ -224,17 +233,17 @@
         }
         
         .vlan-item-name {
-            color: #c9d1d9;
+            color: #1a1a1a;
             font-weight: bold;
         }
         
         .vlan-item-prefix {
-            color: #8b949e;
+            color: #999999;
             font-size: 12px;
         }
         
         .vlan-item-delete {
-            background: #da3633;
+            background: #dc3545;
             border: none;
             color: white;
             padding: 5px 10px;
@@ -244,25 +253,25 @@
         }
         
         .vlan-item-delete:hover {
-            background: #f85149;
+            background: #e74c3c;
         }
         
         
         
         .device-info {
-            background: #21262d;
+            background: #ececec;
             padding: 15px;
             border-radius: 6px;
             margin-bottom: 10px;
         }
         
         .device-info-label {
-            color: #8b949e;
+            color: #999999;
             font-size: 12px;
         }
         
         .device-info-value {
-            color: #c9d1d9;
+            color: #1a1a1a;
             font-size: 14px;
             font-weight: bold;
         }
@@ -271,7 +280,7 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #238636;
+            background: #28a745;
             color: white;
             padding: 15px 20px;
             border-radius: 6px;
@@ -281,7 +290,7 @@
         }
         
         .notification.error {
-            background: #da3633;
+            background: #dc3545;
         }
         
         /* Botones de zoom */
@@ -300,11 +309,11 @@
             height: 40px;
             border-radius: 6px;
             border: none;
-            background: #21262d;
-            color: #8b949e;
+            background: #ececec;
+            color: #666666;
             font-size: 18px;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: all 0.2s;
             display: flex;
             align-items: center;
@@ -312,8 +321,8 @@
         }
         
         .zoom-btn:hover {
-            background: #30363d;
-            color: #c9d1d9;
+            background: #d0d0d0;
+            color: #1a1a1a;
             transform: scale(1.05);
         }
         
@@ -336,7 +345,7 @@
             border: none;
             font-size: 24px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: all 0.3s;
             display: flex;
             align-items: center;
@@ -346,25 +355,25 @@
         
         .floating-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
         }
         
         .floating-btn.connect {
-            background: #1f6feb;
+            background: #0051ba;
             color: white;
         }
         
         .floating-btn.connect:hover {
-            background: #388bfd;
+            background: #0066ff;
         }
         
         .floating-btn.delete {
-            background: #da3633;
+            background: #dc3545;
             color: white;
         }
         
         .floating-btn.delete:hover {
-            background: #f85149;
+            background: #e74c3c;
         }
         
         .floating-btn.active {

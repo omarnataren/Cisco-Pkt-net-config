@@ -27,14 +27,14 @@ export function showDeviceProperties(node) {
         <div class="property-group">
             <h4>VLAN del Servidor</h4>
             <div class="input-group" style="position: relative;">
-                <select id="server-vlan-select" style="width: 100%; padding: 8px 30px 8px 8px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none; -moz-appearance: none;">
+                <select id="server-vlan-select" style="width: 100%; padding: 8px 30px 8px 8px; background: #f0f0f0; color: #000000; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none; -moz-appearance: none;">
                     <option value="">Sin VLAN</option>
                     ${vlans.map(vlan => `<option value="${vlan.name}" ${vlan.name === currentVlan ? 'selected' : ''}>${vlan.name}</option>`).join('')}
                 </select>
-                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #8b949e;">▼</span>
+                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #000000;">▼</span>
             </div>
             <button class="btn" onclick="updateServerVlan()" style="margin-top: 10px;">Asignar VLAN</button>
-            <p style="font-size: 11px; color: #8b949e; margin-top: 8px;">
+            <p style="font-size: 11px; color: #000000; margin-top: 8px;">
                 Se configurará DHCP y puerto de acceso en el Switch Core conectado
             </p>
         </div>
@@ -89,10 +89,10 @@ export function showDeviceProperties(node) {
         const myInterface = isFrom ? edge.data.fromInterface : edge.data.toInterface;
         
         const item = document.createElement('div');
-        item.style.cssText = 'background: #21262d; padding: 10px; border-radius: 6px; margin-bottom: 8px;';
+        item.style.cssText = 'background: #f0f0f0; padding: 10px; border-radius: 6px; margin-bottom: 8px;';
         item.innerHTML = `
-            <div style="color: #c9d1d9; margin-bottom: 5px;">${otherNode.data.name}</div>
-            <div style="color: #8b949e; font-size: 11px;">
+            <div style="color: #000000; margin-bottom: 5px;">${otherNode.data.name}</div>
+            <div style="color: #000000; font-size: 11px;">
                 ${myInterface.type}${myInterface.number}
             </div>
         `;
@@ -138,20 +138,20 @@ export function showEdgeProperties(edgeId) {
         connectionInfo = `
             <div class="property-group">
                 <h4>EtherChannel</h4>
-                <div style="background: #21262d; padding: 15px; border-radius: 6px;">
+                <div style="background: #f0f0f0; padding: 15px; border-radius: 6px;">
                     <div style="margin-bottom: 10px;">
                         <div style="color: #58a6ff; font-weight: bold;">${fromNode.data.name}</div>
-                        <div style="color: #8b949e; font-size: 11px;">
+                        <div style="color: #000000; font-size: 11px;">
                             ${ec.fromType}${ec.fromRange} → Port-channel ${ec.group}
                         </div>
                         <div style="color: #6e7681; font-size: 10px; margin-top: 3px;">
                             Modo: ${modeFrom}
                         </div>
                     </div>
-                    <div style="text-align: center; color: #8b949e; margin: 10px 0; font-size: 18px;">⚡ ${protocolName} ⚡</div>
+                    <div style="text-align: center; color: #000000; margin: 10px 0; font-size: 18px;">⚡ ${protocolName} ⚡</div>
                     <div>
                         <div style="color: #58a6ff; font-weight: bold;">${toNode.data.name}</div>
-                        <div style="color: #8b949e; font-size: 11px;">
+                        <div style="color: #000000; font-size: 11px;">
                             ${ec.toType}${ec.toRange} → Port-channel ${ec.group}
                         </div>
                         <div style="color: #6e7681; font-size: 10px; margin-top: 3px;">
@@ -165,17 +165,17 @@ export function showEdgeProperties(edgeId) {
         connectionInfo = `
             <div class="property-group">
                 <h4>Conexión</h4>
-                <div style="background: #21262d; padding: 15px; border-radius: 6px;">
+                <div style="background: #f0f0f0; padding: 15px; border-radius: 6px;">
                     <div style="margin-bottom: 10px;">
                         <div style="color: #58a6ff; font-weight: bold;">${fromNode.data.name}</div>
-                        <div style="color: #8b949e; font-size: 11px;">
+                        <div style="color: #000000; font-size: 11px;">
                             ${edge.data.fromInterface.type}${edge.data.fromInterface.number}
                         </div>
                     </div>
-                    <div style="text-align: center; color: #8b949e; margin: 10px 0; font-size: 18px;">${directionSymbol}</div>
+                    <div style="text-align: center; color: #000000; margin: 10px 0; font-size: 18px;">${directionSymbol}</div>
                     <div>
                         <div style="color: #58a6ff; font-weight: bold;">${toNode.data.name}</div>
-                        <div style="color: #8b949e; font-size: 11px;">
+                        <div style="color: #000000; font-size: 11px;">
                             ${edge.data.toInterface.type}${edge.data.toInterface.number}
                         </div>
                     </div>
@@ -189,7 +189,7 @@ export function showEdgeProperties(edgeId) {
         ${!isEtherChannel ? `
         <div class="property-group">
             <h4>Dirección de Ruteo</h4>
-            <div style="background: #21262d; padding: 12px; border-radius: 6px; color: #8b949e;">
+            <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; color: #000000;">
                 ${directionLabel}
             </div>
         </div>` : ''}
