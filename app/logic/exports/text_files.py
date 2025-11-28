@@ -94,6 +94,56 @@ def generate_separated_txt_files(router_configs):
     
     files_content['switches'] = "\n".join(content)
     
+    # Contenido de archivo WLAN config
+    wlan_content = []
+    
+    # Buscar VLAN nativa y generar configuración WLC
+    # Agrupar por dispositivo (Router/Switch Core) para separar bloques
+    for device in router_configs:
+        if 'vlans' in device:
+            # Encabezado del bloque del dispositivo
+            wlan_content.append("=" * 40)
+            wlan_content.append(f"BLOQUE: {device['name']}")
+            wlan_content.append("=" * 40)
+            wlan_content.append("")
+            
+            # Parte 1: Configuración WLC (solo si hay VLAN nativa en este dispositivo)
+            wlc_counter = 1
+            for vlan in device['vlans']:
+                if vlan.get('is_native'):
+                    network = vlan['network']
+                    hosts = list(network.hosts())
+                    # IP Address: una antes del gateway (gateway es hosts[-1])
+                    wlan_ip = hosts[-2] if len(hosts) >= 2 else hosts[0]
+                    
+                    wlan_content.append(f"WLC{wlc_counter}") # Usar contador de WLC, no ID de VLAN
+                    wlan_content.append(f"Ip Address: {wlan_ip}")
+                    wlan_content.append(f"Subnet MASK: {network.netmask}")
+                    wlan_content.append(f"Default Gateway: {vlan['gateway']}")
+                    wlan_content.append("")
+                    wlc_counter += 1
+
+            # Parte 2: Resumen de todas las VLANs de este dispositivo
+            for vlan in device['vlans']:
+                network = vlan['network']
+                hosts = list(network.hosts())
+                first_ip = hosts[0] if hosts else "N/A"
+                last_ip = hosts[-2] if len(hosts) > 1 else hosts[0]
+                
+                wlan_content.append(f"---{vlan['name']}---")
+                wlan_content.append("Rango usable:")
+                wlan_content.append(f"|{first_ip}")
+                wlan_content.append("|")
+                wlan_content.append("|")
+                wlan_content.append(f"|{last_ip}")
+                wlan_content.append(f"Gateway{vlan['gateway']}")
+                wlan_content.append(f"Máscara: {network.netmask}")
+                wlan_content.append("")
+            
+            wlan_content.append("") # Espacio entre bloques de dispositivos
+    
+    files_content['wlan'] = "\n".join(wlan_content)
+
     # Contenido de archivo completo (todos juntos)
     content = []
     content.append("=" * 80)

@@ -78,7 +78,8 @@ def download_by_type(device_type):
         'switch_cores': 'config_switch_cores.txt',
         'switches': 'config_switches.txt',
         'completo': 'config_completo.txt',
-        'ptbuilder': 'topology_ptbuilder.txt'
+        'ptbuilder': 'topology_ptbuilder.txt',
+        'wlan': 'WLAN_config.txt'
     }
     
     if device_type not in file_names:

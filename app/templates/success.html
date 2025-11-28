@@ -56,7 +56,7 @@
       
       {% if router.routes %}
       <div class="routes-section">
-        <h3>🔀 Rutas Estáticas Generadas ({{ router.routes|length }} rutas)</h3>
+        <h3>Rutas Estáticas Generadas ({{ router.routes|length }} rutas)</h3>
         <p style="color: #888; font-size: 12px; margin: 5px 0 10px 0;">
           Las rutas fueron generadas automáticamente respetando las direcciones de ruteo configuradas.
         </p>
@@ -64,7 +64,7 @@
       {% endif %}
       
       <div class="command-block" id="config-{{ loop.index0 }}">
-        {% for cmd in router.config %}
+        {% for cmd in router.config[1:] %}
           {% if cmd.startswith('!') %}
             <div class="command comment">{{ cmd }}</div>
           {% else %}
@@ -122,6 +122,7 @@
       <button onclick="window.location.href='/download/routers'">🔀 Descargar Routers</button>
       <button onclick="window.location.href='/download/switch_cores'">🔄 Descargar Switch Cores</button>
       <button onclick="window.location.href='/download/switches'">🔌 Descargar Switches</button>
+      <button onclick="window.location.href='/download/wlan'" style="background: #58a6ff;">📡 Descargar WLAN Config</button>
       {% if not is_physical_mode %}
       <button onclick="window.location.href='/download/ptbuilder'" style="background: #ce9178;">📦 Descargar PTBuilder Script</button>
       {% endif %}
