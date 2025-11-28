@@ -112,6 +112,29 @@ def format_config_for_ptbuilder(config_lines):
             inside_dhcp_pool = True
             last_was_exit = False
             
+        # Detectar comandos de spanning-tree que deben ejecutarse en modo global
+        elif line_lower.startswith('spanning-tree '):
+            if inside_dhcp_pool:
+                formatted.append('exit')
+                formatted.append('enable')
+                formatted.append('conf t')
+                inside_dhcp_pool = False
+                needs_exit_before_next = False
+
+            if needs_exit_before_next:
+                formatted.append('exit')
+                needs_exit_before_next = False
+
+            last_two = [value.strip().lower() for value in formatted[-2:]]
+            if last_two != ['enable', 'configure terminal']:
+                if not formatted or formatted[-1].strip().lower() != 'enable':
+                    formatted.append('enable')
+                if not formatted or formatted[-1].strip().lower() != 'configure terminal':
+                    formatted.append('configure terminal')
+
+            formatted.append(line)
+            last_was_exit = False
+
         # Detectar inicio de configuración de interfaz
         elif line_lower.startswith('int ') or line_lower.startswith('interface '):
             # Si salimos de un pool DHCP, agregar exit\nenable\nconf t

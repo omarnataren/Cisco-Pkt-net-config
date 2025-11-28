@@ -7,6 +7,7 @@ FECHA: 2025
 
 import ipaddress
 import json
+from itertools import combinations
 from flask import render_template, current_app
 
 # Imports de módulos propios
@@ -24,6 +25,41 @@ from app.logic.ptbuilder.interface_utils import expand_interface_type
 
 # Variable global para almacenar contenido de archivos de configuración
 config_files_content = {}
+
+
+def detect_spanning_tree_targets(node_map, adjacency):
+    """Return ids of switches needing spanning-tree priority."""
+    targets = set()
+    for node_id, node in node_map.items():
+        node_type = node['data'].get('type')
+        if node_type not in ['switch', 'switch_core']:
+            continue
+
+        neighbors = adjacency.get(node_id, set())
+        if not neighbors:
+            continue
+
+        has_router_neighbor = any(
+            node_map.get(neighbor_id, {}).get('data', {}).get('type') == 'router'
+            for neighbor_id in neighbors
+        )
+        if not has_router_neighbor:
+            continue
+
+        switch_neighbors = [
+            neighbor_id for neighbor_id in neighbors
+            if node_map.get(neighbor_id, {}).get('data', {}).get('type') in ['switch', 'switch_core']
+        ]
+        if len(switch_neighbors) < 2:
+            continue
+
+        for first, second in combinations(switch_neighbors, 2):
+            neighbor_adjacency = adjacency.get(first, set())
+            if second in neighbor_adjacency:
+                targets.add(node_id)
+                break
+
+    return targets
 
 
 def handle_visual_topology(topology):
@@ -339,6 +375,13 @@ def handle_visual_topology(topology):
                 edges_by_node[edge['to']] = []
             edges_by_node[edge['from']].append(edge)
             edges_by_node[edge['to']].append(edge)
+
+        adjacency = {node_id: set() for node_id in node_map}
+        for edge in edges:
+            adjacency.setdefault(edge['from'], set()).add(edge['to'])
+            adjacency.setdefault(edge['to'], set()).add(edge['from'])
+
+        spanning_tree_targets = detect_spanning_tree_targets(node_map, adjacency)
         
         # Procesar routers (optimizado)
         for router in routers:
@@ -587,6 +630,10 @@ def handle_visual_topology(topology):
             
             config_lines.append("exit")
             config_lines.append("")
+
+            if swc_id in spanning_tree_targets:
+                config_lines.append("spanning-tree vlan 1 priority 4096")
+                config_lines.append("")
             
             # Configurar interfaces backbone
             backbone_interfaces = []
@@ -845,6 +892,10 @@ def handle_visual_topology(topology):
             # Agregar exit después de crear VLANs
             if vlans:
                 config_lines.append("exit")
+                config_lines.append("")
+
+            if switch_id in spanning_tree_targets:
+                config_lines.append("spanning-tree vlan 1 priority 4096")
                 config_lines.append("")
             
             # Configurar puerto trunk hacia switch core, router u otro switch
