@@ -122,6 +122,13 @@ def handle_visual_topology(topology):
         edges = topology['edges']
         vlans = topology['vlans']
         
+        # Buscar VLAN nativa
+        native_vlan_id = None
+        for vlan in vlans:
+            if vlan.get('isNative'):
+                native_vlan_id = ''.join(filter(str.isdigit, vlan['name']))
+                break
+        
         # Obtener el primer octeto de la red base (por defecto 19 si no se especifica)
         base_octet = topology.get('baseNetworkOctet', 19)
         
@@ -626,13 +633,14 @@ def handle_visual_topology(topology):
                         'is_from': is_from
                     })
             
-            # Configurar interfaces trunk para switches
+            # Configurar interfaces trunk para switches y WLCs
             etherchannel_configs = []
             for edge in swc_edges:
                 other_id = edge['to'] if edge['from'] == swc_id else edge['from']
                 other_node = node_map.get(other_id)
                 
-                if other_node and other_node['data']['type'] == 'switch':
+                # Aceptar conexiones a switch o wlc
+                if other_node and other_node['data']['type'] in ['switch', 'wlc']:
                     is_from = edge['from'] == swc_id
                     
                     # Verificar si es EtherChannel
@@ -650,6 +658,11 @@ def handle_visual_topology(topology):
                         config_lines.append(f"interface {iface_full}")
                         config_lines.append(" switchport trunk encapsulation dot1Q")
                         config_lines.append(" switchport mode trunk")
+                        
+                        # Si es WLC o Switch y hay VLAN nativa, configurar native vlan
+                        if other_node['data']['type'] in ['wlc', 'switch'] and native_vlan_id:
+                            config_lines.append(f" switchport trunk native vlan {native_vlan_id}")
+                            
                         config_lines.append(" no shutdown")
                         config_lines.append("")
             
@@ -744,7 +757,8 @@ def handle_visual_topology(topology):
                                 'termination': vlan_num,
                                 'network': network,
                                 'gateway': str(gateway),
-                                'mask': str(network.netmask)
+                                'mask': str(network.netmask),
+                                'is_native': vlan.get('isNative', False)
                             })
                         
                         vlan_counter += 1
@@ -859,8 +873,8 @@ def handle_visual_topology(topology):
                 other_id = edge['to'] if edge['from'] == switch['id'] else edge['from']
                 other_node = next((n for n in nodes if n['id'] == other_id), None)
                 
-                # Aceptar conexiones a switch_core, router u otro switch
-                if other_node and other_node['data']['type'] in ['switch_core', 'router', 'switch']:
+                # Aceptar conexiones a switch_core, router, switch u wlc
+                if other_node and other_node['data']['type'] in ['switch_core', 'router', 'switch', 'wlc', 'ap']:
                     is_from = edge['from'] == switch['id']
                     
                     # Verificar si es EtherChannel
@@ -878,7 +892,13 @@ def handle_visual_topology(topology):
                         
                         config_lines.append(f"int {iface_full}")
                         config_lines.append("switchport mode trunk")
-                        config_lines.append("no shutdown")
+                        
+                        # Si es WLC, AP o Switch Core y hay VLAN nativa, configurar native vlan
+                        if other_node['data']['type'] in ['wlc', 'ap', 'switch_core'] and native_vlan_id:
+                            config_lines.append(f"switchport trunk native vlan {native_vlan_id}")
+                        
+                        config_lines.append("no shut")
+                        config_lines.append("")
                         processed_edges.add(edge['id'])  # Marcar como procesado
             
             # Configurar EtherChannels si existen
@@ -951,7 +971,7 @@ def handle_visual_topology(topology):
         
         # Solo generar script PTBuilder si NO es modo físico
         if not is_physical_mode:
-            ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers)
+            ptbuilder_content = generate_ptbuilder_script(topology, router_configs, computers, servers)
             config_files_content['ptbuilder'] = ptbuilder_content
         
         # Transferir al config de Flask para que las rutas de descarga puedan acceder

@@ -45,7 +45,7 @@ def get_cable_type(from_device_type, to_device_type):
     return 'straight'
 
 
-def generate_ptbuilder_script(topology, router_configs, computers):
+def generate_ptbuilder_script(topology, router_configs, computers, servers=[]):
     """
     Genera script PTBuilder para crear topología en Packet Tracer
     
@@ -201,6 +201,10 @@ def generate_ptbuilder_script(topology, router_configs, computers):
     for computer in computers:
         pc_name = computer['data']['name']
         lines.append(f'configurePcIp("{pc_name}", true);')
+        
+    for server in servers:
+        server_name = server['data']['name']
+        lines.append(f'configurePcIp("{server_name}", true);')
     
     # Retornar contenido para descarga
     ptbuilder_content = "\n".join(lines)
