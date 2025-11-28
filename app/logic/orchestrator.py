@@ -801,11 +801,12 @@ def handle_visual_topology(topology):
                 config_lines.append("")
             
             # Configurar VLAN 1 para gestión de switches normales
-            # Cada switch core tiene su propia red de gestión
+            # Cada switch core tiene su propia red de gestión usando 192.168.x.0/24
+            # SWC1 = 192.168.1.0/24, SWC2 = 192.168.2.0/24, etc.
             swc_index = switch_cores.index(swc) + 1
             config_lines.append("")
             config_lines.append(f"interface vlan 1")
-            config_lines.append(f"ip address {base_octet}.0.{swc_index}.254 255.255.255.0")
+            config_lines.append(f"ip address 192.168.{swc_index}.254 255.255.255.0")
             config_lines.append(" no shut")
             config_lines.append("exit")
             config_lines.append("")
@@ -814,7 +815,7 @@ def handle_visual_topology(topology):
             assigned_vlans = []
             
             # Agregar VLAN 1 de management a la lista de VLANs para el ruteo
-            vlan1_network = ipaddress.IPv4Network(f"{base_octet}.0.{swc_index}.0/24")
+            vlan1_network = ipaddress.IPv4Network(f"192.168.{swc_index}.0/24")
             
             # IMPORTANTE: Marcar la red de VLAN 1 como usada para evitar conflictos
             used.append(vlan1_network)
@@ -823,7 +824,7 @@ def handle_visual_topology(topology):
                 'name': 'VLAN1',
                 'termination': '1',
                 'network': vlan1_network,
-                'gateway': f"{base_octet}.0.{swc_index}.254",
+                'gateway': f"192.168.{swc_index}.254",
                 'mask': '255.255.255.0',
                 'is_native': False
             })
@@ -939,20 +940,20 @@ def handle_visual_topology(topology):
                     # Por ahora usar un patrón: cada switch core tendrá su propia red para VLAN 1
                     # SW conectado a SWC1 = 15.0.1.x, SW conectado a SWC2 = 15.0.2.x, etc.
                     swc_index = switch_cores.index(other_node) + 1
-                    config_lines.append(f"ip default-Gateway {base_octet}.0.{swc_index}.254")
+                    config_lines.append(f"ip default-Gateway 192.168.{swc_index}.254")
                     config_lines.append("interface vlan 1")
-                    config_lines.append(f"ip address {base_octet}.0.{swc_index}.{9 + switch_number} 255.255.255.0")
+                    config_lines.append(f"ip address 192.168.{swc_index}.{9 + switch_number} 255.255.255.0")
                     config_lines.append(" no shut")
                     config_lines.append("exit")
                     config_lines.append("")
-                    connected_swc_vlan1_ip = f"{base_octet}.0.{swc_index}.254"
+                    connected_swc_vlan1_ip = f"192.168.{swc_index}.254"
                     break
             
             # Si no encontró switch core, usar patrón por defecto
             if not connected_swc_vlan1_ip:
-                config_lines.append(f"ip default-Gateway {base_octet}.0.1.254")
+                config_lines.append(f"ip default-Gateway 192.168.1.254")
                 config_lines.append("interface vlan 1")
-                config_lines.append(f"ip address {base_octet}.0.1.{9 + switch_number} 255.255.255.0")
+                config_lines.append(f"ip address 192.168.1.{9 + switch_number} 255.255.255.0")
                 config_lines.append(" no shut")
                 config_lines.append("exit")
                 config_lines.append("")
