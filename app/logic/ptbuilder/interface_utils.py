@@ -81,11 +81,21 @@ def format_config_for_ptbuilder(config_lines):
     if not config_lines:
         return []
     
+    # Detectar si la configuración ya comienza con enable + config terminal
+    # En ese caso, ya estamos en modo configuración y NO debemos agregar exit\nenable\nconf t
+    starts_with_config_mode = False
+    for i, line in enumerate(config_lines[:5]):  # Revisar las primeras 5 líneas
+        line_lower = line.strip().lower()
+        if line_lower in ['enable', 'config terminal', 'configure terminal', 'conf t']:
+            starts_with_config_mode = True
+            break
+    
     formatted = []
     found_first_interface = False
     needs_exit_before_next = False
     inside_dhcp_pool = False
     last_was_exit = False  # Rastrear si el último comando fue exit
+    in_config_mode = starts_with_config_mode  # Rastrear si estamos en modo config
     
     # Pre-analizar para detectar si hay ip route después de un exit
     has_ip_route = any(line.strip().lower().startswith('ip route') for line in config_lines)
@@ -140,25 +150,33 @@ def format_config_for_ptbuilder(config_lines):
             # Si salimos de un pool DHCP, agregar exit\nenable\nconf t
             if inside_dhcp_pool:
                 formatted.append('exit')
-                formatted.append('enable')
-                formatted.append('conf t')
+                if not in_config_mode:
+                    formatted.append('enable')
+                    formatted.append('conf t')
                 inside_dhcp_pool = False
                 last_was_exit = False
             
-            # Antes de cada interfaz, agregar exit\nenable\nconf t
-            if not found_first_interface:
-                # Primera interfaz: agregar exit SOLO si no acabamos de salir
-                if not last_was_exit:
-                    formatted.append('exit')
-                found_first_interface = True
+            # Si NO estamos en modo config persistente, usar la lógica antigua
+            if not in_config_mode:
+                # Antes de cada interfaz, agregar exit\nenable\nconf t
+                if not found_first_interface:
+                    # Primera interfaz: agregar exit SOLO si no acabamos de salir
+                    if not last_was_exit:
+                        formatted.append('exit')
+                    found_first_interface = True
+                else:
+                    # Interfaces subsiguientes: agregar exit solo si estábamos dentro de una interfaz
+                    if needs_exit_before_next:
+                        formatted.append('exit')
+                
+                # Agregar enable\nconf t antes de la interfaz
+                formatted.append('enable')
+                formatted.append('conf t')
             else:
-                # Interfaces subsiguientes: agregar exit solo si estábamos dentro de una interfaz
+                # Si YA estamos en modo config, solo salir de la interfaz anterior si es necesario
                 if needs_exit_before_next:
                     formatted.append('exit')
             
-            # Agregar enable\nconf t antes de la interfaz
-            formatted.append('enable')
-            formatted.append('conf t')
             formatted.append(line)
             needs_exit_before_next = True
             last_was_exit = False

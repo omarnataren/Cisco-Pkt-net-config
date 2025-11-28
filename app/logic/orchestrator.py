@@ -396,12 +396,21 @@ def handle_visual_topology(topology):
             name = router['data']['name']
             router_id = router['id']
             
-            # Encabezado
+            # Encabezado con SSH 
             config_lines.append(f"{name}")
             config_lines.append("enable")
-            config_lines.append("conf t")
-            config_lines.append(f"Hostname {name}")
-            config_lines.append("Enable secret cisco")
+            config_lines.append("config terminal")
+            config_lines.append(f"hostname {name}")
+            config_lines.append("ip domain-name cisco.com")
+            config_lines.append("crypto key generate rsa")
+            config_lines.append("512")
+            config_lines.append("line vty 0 5")
+            config_lines.append("transport input ssh")
+            config_lines.append("login local")
+            config_lines.append("exit")
+            config_lines.append("username user password cisco")
+            config_lines.append("enable secret cisco")
+            config_lines.append("")
             
             # Obtener edges del router (búsqueda O(1))
             router_edges = edges_by_node.get(router_id, [])
@@ -439,9 +448,9 @@ def handle_visual_topology(topology):
                     ip_addr = str(ip_data['from_ip']) if is_from else str(ip_data['to_ip'])
                     next_hop_ip = str(ip_data['to_ip']) if is_from else str(ip_data['from_ip'])
                     
-                    config_lines.append(f"int {iface_full} ")
-                    config_lines.append(f"ip add {ip_addr} {ip_data['mask']}")
-                    config_lines.append("no shut")
+                    config_lines.append(f"int {iface_full}")
+                    config_lines.append(f"ip address {ip_addr} {ip_data['mask']}")
+                    config_lines.append(" no shut")
                     
                     backbone_interfaces.append({
                         'type': iface_data['type'],
@@ -573,24 +582,31 @@ def handle_visual_topology(topology):
             name = swc['data']['name']
             swc_id = swc['id']
             
-            # Encabezado
+            # Encabezado con SSH 
             config_lines.append(f"{name}")
             config_lines.append("enable")
-            config_lines.append("conf t")
+            config_lines.append("config terminal")
             config_lines.append(f"hostname {name}")
-            config_lines.append("enable secret cisco")
             config_lines.append("ip routing")
-            config_lines.append("")
+            config_lines.append("ip domain-name cisco.com")
+            config_lines.append("crypto key generate rsa")
+            config_lines.append("yes")
+            config_lines.append("512")
+            config_lines.append("line vty 0 5")
+            config_lines.append("transport input ssh")
+            config_lines.append("login local")
+            config_lines.append("exit")
+            config_lines.append("username user password cisco")
+            config_lines.append("enable secret cisco")
+            config_lines.append(f"hostname {name}")
             
-            # Agregar configuración SSH
-            ssh_config = generate_ssh_config()
-            config_lines.extend(ssh_config)
-            
-            # Crear VLANs (búsquedas optimizadas)
-            vlans_used = set()
+            # Crear TODAS las VLANs del proyecto en el switch core
+            # Los switch cores necesitan tener todas las VLANs para los trunks
+            vlans_to_declare = set()  # VLANs a declarar (vlan X)
+            vlans_with_computers = set()  # VLANs que necesitan SVI (interface vlan X)
             swc_edges = edges_by_node.get(swc_id, [])
             
-            # Encontrar computadoras conectadas
+            # Encontrar VLANs que realmente tienen computadoras conectadas
             for edge in swc_edges:
                 other_id = edge['to'] if edge['from'] == swc_id else edge['from']
                 other_node = node_map.get(other_id)
@@ -602,11 +618,11 @@ def handle_visual_topology(topology):
                 
                 # Servidores conectados directamente
                 if other_type == 'server' and other_node['data'].get('vlan'):
-                    vlans_used.add(other_node['data']['vlan'])
+                    vlans_with_computers.add(other_node['data']['vlan'])
                 
                 # Computadoras conectadas directamente (antiguo sistema)
                 if other_type == 'computer' and other_node['data'].get('vlan'):
-                    vlans_used.add(other_node['data']['vlan'])
+                    vlans_with_computers.add(other_node['data']['vlan'])
                 elif other_type == 'switch':
                     # Buscar computadoras del switch (antiguo sistema - nodos)
                     switch_edges = edges_by_node.get(other_id, [])
@@ -614,22 +630,40 @@ def handle_visual_topology(topology):
                         comp_id = se['to'] if se['from'] == other_id else se['from']
                         comp = node_map.get(comp_id)
                         if comp and comp['data']['type'] == 'computer' and comp['data'].get('vlan'):
-                            vlans_used.add(comp['data']['vlan'])
+                            vlans_with_computers.add(comp['data']['vlan'])
                     
                     # Buscar computadoras del switch (nuevo sistema - almacenadas)
                     if 'computers' in other_node['data']:
                         for pc in other_node['data']['computers']:
                             if pc.get('vlan'):
-                                vlans_used.add(pc['vlan'])
+                                vlans_with_computers.add(pc['vlan'])
             
             # Computadoras conectadas directamente al switch core (nuevo sistema)
             if 'computers' in swc['data']:
                 for pc in swc['data']['computers']:
                     if pc.get('vlan'):
-                        vlans_used.add(pc['vlan'])
+                        vlans_with_computers.add(pc['vlan'])
+            
+            # Verificar si hay switches conectados al switch core
+            has_switches_connected = False
+            for edge in swc_edges:
+                other_id = edge['to'] if edge['from'] == swc_id else edge['from']
+                other_node = node_map.get(other_id)
+                if other_node and other_node['data']['type'] == 'switch':
+                    has_switches_connected = True
+                    break
+            
+            # Determinar qué VLANs declarar
+            if has_switches_connected:
+                # Si hay switches conectados, declarar TODAS las VLANs del proyecto
+                for vlan in vlans:
+                    vlans_to_declare.add(vlan['name'])
+            else:
+                # Si NO hay switches, solo declarar las VLANs con computadoras
+                vlans_to_declare = vlans_with_computers.copy()
             
             # Crear VLANs
-            for vlan_name in sorted(vlans_used):
+            for vlan_name in sorted(vlans_to_declare):
                 vlan_num = ''.join(filter(str.isdigit, vlan_name))
                 if vlan_num:
                     config_lines.append(f"vlan {vlan_num}")
@@ -766,11 +800,36 @@ def handle_visual_topology(topology):
                 config_lines.append(" no shutdown")
                 config_lines.append("")
             
+            # Configurar VLAN 1 para gestión de switches normales
+            # Cada switch core tiene su propia red de gestión
+            swc_index = switch_cores.index(swc) + 1
+            config_lines.append("")
+            config_lines.append(f"interface vlan 1")
+            config_lines.append(f"ip address {base_octet}.0.{swc_index}.254 255.255.255.0")
+            config_lines.append(" no shut")
+            config_lines.append("exit")
+            config_lines.append("")
+            
             # Configurar SVIs y DHCP
             assigned_vlans = []
+            
+            # Agregar VLAN 1 de management a la lista de VLANs para el ruteo
+            vlan1_network = ipaddress.IPv4Network(f"{base_octet}.0.{swc_index}.0/24")
+            
+            # IMPORTANTE: Marcar la red de VLAN 1 como usada para evitar conflictos
+            used.append(vlan1_network)
+            
+            assigned_vlans.append({
+                'name': 'VLAN1',
+                'termination': '1',
+                'network': vlan1_network,
+                'gateway': f"{base_octet}.0.{swc_index}.254",
+                'mask': '255.255.255.0',
+                'is_native': False
+            })
             vlan_counter = 1
             for vlan in vlans:
-                if vlan['name'] in vlans_used:
+                if vlan['name'] in vlans_with_computers:  # Solo crear SVI si tiene computadoras
                     vlan_num = ''.join(filter(str.isdigit, vlan['name']))
                     if vlan_num:
                         prefix = int(vlan['prefix'])
@@ -847,14 +906,57 @@ def handle_visual_topology(topology):
             
             # NO agregar el nombre del dispositivo aquí - PTBuilder ya lo tiene en configureIosDevice()
             config_lines.append("enable")
-            config_lines.append("conf t")
-            config_lines.append(f"Hostname {name}")
-            config_lines.append("Enable secret cisco")
+            config_lines.append("config terminal")
+            config_lines.append(f"hostname {name}")
+            config_lines.append("ip domain-name cisco.com")
+            config_lines.append("crypto key generate rsa")
+            config_lines.append("512")
+            config_lines.append("line vty 0 5")
+            config_lines.append("transport input ssh")
+            config_lines.append("login local")
+            config_lines.append("exit")
+            config_lines.append("username user password cisco")
+            config_lines.append("enable secret cisco")
+            config_lines.append("")
             config_lines.append("")
             
-            # Agregar configuración SSH
-            ssh_config = generate_ssh_config()
-            config_lines.extend(ssh_config)
+            # Configurar VLAN 1 management después de SSH (según PARATEST.cisco)
+            # Buscar switch core conectado para determinar el gateway correcto
+            switch_number = len([s for s in switches if switches.index(s) < switches.index(switch)]) + 1
+            
+            # Buscar a qué switch core o router está conectado este switch
+            connected_swc_vlan1_ip = None
+            switch_edges = edges_by_node.get(switch_id, [])
+            
+            for edge in switch_edges:
+                other_id = edge['to'] if edge['from'] == switch_id else edge['from']
+                other_node = node_map.get(other_id)
+                
+                if other_node and other_node['data']['type'] == 'switch_core':
+                    # Buscar la IP de VLAN 1 del switch core en sus VLANs asignadas
+                    # Por convención, el switch core tiene VLAN 1 configurada
+                    # El gateway será base_octet.0.{vlan_number}.254
+                    # Por ahora usar un patrón: cada switch core tendrá su propia red para VLAN 1
+                    # SW conectado a SWC1 = 15.0.1.x, SW conectado a SWC2 = 15.0.2.x, etc.
+                    swc_index = switch_cores.index(other_node) + 1
+                    config_lines.append(f"ip default-Gateway {base_octet}.0.{swc_index}.254")
+                    config_lines.append("interface vlan 1")
+                    config_lines.append(f"ip address {base_octet}.0.{swc_index}.{9 + switch_number} 255.255.255.0")
+                    config_lines.append(" no shut")
+                    config_lines.append("exit")
+                    config_lines.append("")
+                    connected_swc_vlan1_ip = f"{base_octet}.0.{swc_index}.254"
+                    break
+            
+            # Si no encontró switch core, usar patrón por defecto
+            if not connected_swc_vlan1_ip:
+                config_lines.append(f"ip default-Gateway {base_octet}.0.1.254")
+                config_lines.append("interface vlan 1")
+                config_lines.append(f"ip address {base_octet}.0.1.{9 + switch_number} 255.255.255.0")
+                config_lines.append(" no shut")
+                config_lines.append("exit")
+                config_lines.append("")
+            config_lines.append("")
             
             # Obtener edges del switch
             switch_edges = edges_by_node.get(switch_id, [])
@@ -961,7 +1063,7 @@ def handle_visual_topology(topology):
             for port in computer_ports:
                 config_lines.append(f"int {port['interface']}")
                 config_lines.append(f"switchport access vlan {port['vlan']}")
-                config_lines.append("no shutdown")
+                config_lines.append(" no shut")
             
             router_configs.append({
                 'name': name,
