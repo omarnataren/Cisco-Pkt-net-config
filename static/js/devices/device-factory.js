@@ -89,7 +89,7 @@ case 'ap':
     // Si estamos en modo físico, necesitamos pedir el modelo
     if (window.deviceMode === 'physical' && (deviceType === 'router' || deviceType === 'switch' || deviceType === 'switch_core')) {
         // Mostrar modal para seleccionar modelo
-        showModelSelectionModal(id, name, shape, x, y, color, deviceData);
+        showModelSelectionModal(id, name, shape, x, y, image, deviceData);
         return;
     }
     
@@ -104,7 +104,7 @@ case 'ap':
         y: y,  // Coordenada Y exacta posicionada por el usuario - Se usarán en PTBuilder
         fixed: false,  // Permitir que el nodo sea arrastrable
         font: {
-            color: '#ffffff',
+            color: '#000000',
             size: 11
         },
         data: deviceData
@@ -126,7 +126,7 @@ case 'ap':
 /**
  * Muestra modal para seleccionar modelo físico del dispositivo
  */
-function showModelSelectionModal(id, name, shape, x, y, color, deviceData) {
+function showModelSelectionModal(id, name, shape, x, y, image, deviceData) {
     const deviceType = deviceData.type;
     const models = window.getAvailableModels(deviceType);
     
@@ -135,12 +135,12 @@ function showModelSelectionModal(id, name, shape, x, y, color, deviceData) {
         const nodeConfig = {
             id, label: name, title: name, shape, size: 30,
             x, y, fixed: false,
-            font: { color: '#ffffff', size: 11 },
+            font: { color: '#000000', size: 11 },
             data: deviceData
         };
         
-        if (color) {
-            nodeConfig.color = color;
+        if (image) {
+            nodeConfig.image = image;
         }
         
         window.nodes.add(nodeConfig);
@@ -173,7 +173,7 @@ function showModelSelectionModal(id, name, shape, x, y, color, deviceData) {
     document.body.appendChild(modal);
     
     // Guardar datos temporales
-    window.tempDeviceData = { id, name, shape, x, y, color, deviceData };
+    window.tempDeviceData = { id, name, shape, x, y, image, deviceData };
 }
 
 /**
@@ -183,7 +183,7 @@ window.confirmModelSelection = function() {
     const modelSelect = document.getElementById('model-select');
     const selectedModel = modelSelect.value;
     
-    const { id, name, shape, x, y, color, deviceData } = window.tempDeviceData;
+    const { id, name, shape, x, y, image, deviceData } = window.tempDeviceData;
     
     // Agregar modelo a los datos del dispositivo
     deviceData.model = selectedModel;
@@ -201,13 +201,13 @@ window.confirmModelSelection = function() {
         size: 30,
         x, y, 
         fixed: false, 
-        font: { color: '#ffffff', size: 11 },
+        font: { color: '#000000', size: 11 },
         data: deviceData
     };
     
-    // Agregar color
-    if (color) {
-        nodeConfig.color = color;
+    // Agregar imagen
+    if (image) {
+        nodeConfig.image = image;
     }
     
     window.nodes.add(nodeConfig);

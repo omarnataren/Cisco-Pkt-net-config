@@ -5,10 +5,10 @@ export function initNetwork() {
     const options = {
         nodes: {
             shape: 'circle',
-            size: 30,
+            size: 20,
             borderWidth: 2,
             font: { 
-                color: '#ffffff', 
+                color: '#000000', 
                 size: 11
             }
         },
@@ -101,6 +101,121 @@ export function initNetwork() {
         }
     }
     });
+    
+    // Dibujar etiquetas de interfaces en los cables
+    window.network.on('afterDrawing', function(ctx) {
+        drawInterfaceLabels(ctx);
+    });
+}
+
+/**
+ * Dibuja las etiquetas de interfaces cerca de cada dispositivo en los cables
+ * @param {CanvasRenderingContext2D} ctx - Contexto del canvas
+ */
+function drawInterfaceLabels(ctx) {
+    const edges = window.edges.get();
+    const nodePositions = window.network.getPositions();
+    
+    edges.forEach(edge => {
+        if (!edge.data || !edge.data.fromInterface || !edge.data.toInterface) return;
+        
+        const fromPos = nodePositions[edge.from];
+        const toPos = nodePositions[edge.to];
+        
+        if (!fromPos || !toPos) return;
+        
+        // Calcular el ángulo del cable
+        const dx = toPos.x - fromPos.x;
+        const dy = toPos.y - fromPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance === 0) return;
+        
+        // Normalizar dirección
+        const nx = dx / distance;
+        const ny = dy / distance;
+        
+        // Distancia desde el nodo (ajustar según el tamaño del nodo + offset)
+        const nodeRadius = 35; // Tamaño aproximado del nodo
+        const labelOffset = 5; // Separación adicional
+        
+        // Posición de la etiqueta "from" (cerca del nodo origen)
+        const fromLabelX = fromPos.x + nx * (nodeRadius + labelOffset);
+        const fromLabelY = fromPos.y + ny * (nodeRadius + labelOffset);
+        
+        // Posición de la etiqueta "to" (cerca del nodo destino)
+        const toLabelX = toPos.x - nx * (nodeRadius + labelOffset);
+        const toLabelY = toPos.y - ny * (nodeRadius + labelOffset);
+        
+        // Formatear texto de interfaces (abreviado)
+        const fromText = formatInterfaceLabel(edge.data.fromInterface);
+        const toText = formatInterfaceLabel(edge.data.toInterface);
+        
+        // Configurar estilo del texto
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Dibujar etiqueta "from" con fondo
+        drawLabelWithBackground(ctx, fromText, fromLabelX, fromLabelY);
+        
+        // Dibujar etiqueta "to" con fondo
+        drawLabelWithBackground(ctx, toText, toLabelX, toLabelY);
+    });
+}
+
+/**
+ * Formatea el nombre de la interfaz de forma abreviada
+ * @param {Object} iface - Objeto con type y number
+ * @returns {string} Interfaz abreviada (ej: "Gi0/0", "Fa0/1")
+ */
+function formatInterfaceLabel(iface) {
+    if (!iface || !iface.type || iface.number === undefined) return '';
+    
+    // Abreviaturas comunes
+    const abbreviations = {
+        'GigabitEthernet': 'Gi',
+        'FastEthernet': 'Fa',
+        'Ethernet': 'Eth',
+        'Serial': 'Se',
+        'Loopback': 'Lo',
+        'Vlan': 'Vl',
+        'Port-channel': 'Po'
+    };
+    
+    const abbr = abbreviations[iface.type] || iface.type.substring(0, 2);
+    return `${abbr}${iface.number}`;
+}
+
+/**
+ * Dibuja una etiqueta con fondo semitransparente
+ * @param {CanvasRenderingContext2D} ctx - Contexto del canvas
+ * @param {string} text - Texto a dibujar
+ * @param {number} x - Posición X
+ * @param {number} y - Posición Y
+ */
+function drawLabelWithBackground(ctx, text, x, y) {
+    if (!text) return;
+    
+    const padding = 5;
+    const metrics = ctx.measureText(text);
+    const width = metrics.width + padding * 2;
+    const height = 14;
+    
+    // Fondo semitransparente
+    ctx.fillStyle = 'rgba(225, 225, 225, 0.84)';
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, 3);
+    ctx.fill();
+    
+    // Borde sutil
+    ctx.strokeStyle = 'rgba(72, 72, 72, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // Texto
+    ctx.fillStyle = '#000000ff';
+    ctx.fillText(text, x, y);
 }
 
 // ✅ Exponer funciones globalmente para compatibilidad con HTML onclick
