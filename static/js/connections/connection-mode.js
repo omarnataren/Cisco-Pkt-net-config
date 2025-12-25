@@ -88,14 +88,12 @@ export function handleConnectionClick(nodeId) {
             if (fromInterface) {
                 document.getElementById('conn-from-type').value = getInterfaceTypeSelectValue(fromInterface.type);
                 document.getElementById('conn-from-number').value = fromInterface.number;
-                document.getElementById('conn-from-type').disabled = true;
-                document.getElementById('conn-from-number').disabled = true;
+                document.getElementById('conn-from-selects').style.display = 'none';
                 document.getElementById('conn-from-auto-notice').style.display = 'block';
             } else {
                 document.getElementById('conn-from-type').value = 'fa';
                 document.getElementById('conn-from-number').value = '0/0';
-                document.getElementById('conn-from-type').disabled = false;
-                document.getElementById('conn-from-number').disabled = false;
+                document.getElementById('conn-from-selects').style.display = 'flex';
                 document.getElementById('conn-from-auto-notice').style.display = 'none';
             }
             
@@ -103,14 +101,12 @@ export function handleConnectionClick(nodeId) {
             if (toInterface) {
                 document.getElementById('conn-to-type').value = getInterfaceTypeSelectValue(toInterface.type);
                 document.getElementById('conn-to-number').value = toInterface.number;
-                document.getElementById('conn-to-type').disabled = true;
-                document.getElementById('conn-to-number').disabled = true;
+                document.getElementById('conn-to-selects').style.display = 'none';
                 document.getElementById('conn-to-auto-notice').style.display = 'block';
             } else {
                 document.getElementById('conn-to-type').value = 'fa';
                 document.getElementById('conn-to-number').value = '0/0';
-                document.getElementById('conn-to-type').disabled = false;
-                document.getElementById('conn-to-number').disabled = false;
+                document.getElementById('conn-to-selects').style.display = 'flex';
                 document.getElementById('conn-to-auto-notice').style.display = 'none';
             }
             
@@ -125,11 +121,9 @@ export function handleConnectionClick(nodeId) {
             document.getElementById('conn-to-type').value = 'fa';
             document.getElementById('conn-to-number').value = '0/0';
             
-            // Habilitar selects
-            document.getElementById('conn-from-type').disabled = false;
-            document.getElementById('conn-from-number').disabled = false;
-            document.getElementById('conn-to-type').disabled = false;
-            document.getElementById('conn-to-number').disabled = false;
+            // Mostrar selects
+            document.getElementById('conn-from-selects').style.display = 'flex';
+            document.getElementById('conn-to-selects').style.display = 'flex';
             
             // Ocultar avisos
             document.getElementById('conn-from-auto-notice').style.display = 'none';

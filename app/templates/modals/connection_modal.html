@@ -25,7 +25,7 @@
             <div id="new-normal-fields">
                 <div class="input-group">
                     <label>Interfaz (origen)</label>
-                    <div style="display: flex; gap: 8px;">
+                    <div id="conn-from-selects" style="display: flex; gap: 8px;">
                         <select id="conn-from-type" onchange="updateFromInterfaceList()" style="flex: 0 0 140px;">
                             <option value="fa">FastEthernet</option>
                             <option value="gi">GigabitEthernet</option>
@@ -47,7 +47,7 @@
                 
                 <div class="input-group">
                     <label>Interfaz (destino)</label>
-                    <div style="display: flex; gap: 8px;">
+                    <div id="conn-to-selects" style="display: flex; gap: 8px;">
                         <select id="conn-to-type" onchange="updateToInterfaceList()" style="flex: 0 0 140px;">
                             <option value="fa">FastEthernet</option>
                             <option value="gi">GigabitEthernet</option>

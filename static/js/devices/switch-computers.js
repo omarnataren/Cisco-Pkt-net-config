@@ -33,13 +33,16 @@ export function updateComputersList() {
     listDiv.innerHTML = '';
     computers.forEach((pc, index) => {
     const item = document.createElement('div');
-    item.style.cssText = 'background: #21262d; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
+    // Fondo gris claro (#f0f0f0) y texto oscuro para contraste
+    item.style.cssText = 'background: #f0f0f0; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #d0d7de;';
     item.innerHTML = `
         <div>
-            <div style="color: #58a6ff; font-weight: bold; margin-bottom: 4px;">${pc.name}</div>
-            <div style="color: #8b949e; font-size: 11px;">Puerto: ${pc.portNumber} • VLAN: ${pc.vlan}</div>
+            <div style="color: #0969da; font-weight: bold; margin-bottom: 4px;">${pc.name}</div>
+            <div style="color: #57606a; font-size: 11px;">Puerto: ${pc.portNumber} • VLAN: ${pc.vlan}</div>
         </div>
-        <button onclick="removeComputer(${index})" style="background: #da3633; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Eliminar</button>
+        <button onclick="removeComputer(${index})" style="background: #cf222e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+            <img src="/static/assets/icons/eliminar.png" style="width: 14px; height: 14px;"> Eliminar
+        </button>
     `;
     listDiv.appendChild(item);
     });

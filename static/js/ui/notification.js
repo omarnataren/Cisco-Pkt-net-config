@@ -7,7 +7,7 @@ export function showNotification(message, type = 'success') {
     
     setTimeout(() => {
 notification.style.display = 'none';
-    }, 3000);
+    }, 5000);
 }
 
 // ✅ Exponer a window
